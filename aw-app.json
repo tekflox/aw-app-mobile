@@ -1,0 +1,107 @@
+{
+  "manifest_version": 1,
+  "id": "mobile",
+  "name": "AW Mobile",
+  "version": "0.1.0",
+  "description": "The workspace half of aw-mobile — the AW iPhone app, the Apple Watch app and the Meta glasses webapp. Installing it into a workspace creates the agents those clients talk to (Sonnet / Opus / Fable) in that tenant's Agents Platform, plus the aw-agent-watch skill that tells them how to answer on a 40mm screen or through text-to-speech. Nothing else in this workspace knows that a reply read aloud must carry no markdown; this app is where that contract lives.",
+  "tier": "inprocess",
+  "requires_ui_refresh": false,
+  "category": "Runnables",
+  "publisher": "TekFlox",
+  "resource_estimate": {
+    "cpu": "low",
+    "memory": "low",
+    "disk": "low"
+  },
+  "runtime": {
+    "python": ">=3.11",
+    "entrypoint": "mobile_app.plugin:MobileAppPlugin",
+    "pip_requires": []
+  },
+  "permissions": [
+    "agents:contribute"
+  ],
+  "config_visible": false,
+  "contributes": {
+    "skills": [
+      {
+        "id": "aw-agent-watch",
+        "path": "skills/aw-agent-watch/SKILL.md",
+        "description": "Channel contract for an agent reached from the AW iOS app or Apple Watch — the reply lands on a 40mm screen or is spoken aloud, so it carries no markdown and is budgeted by source device."
+      }
+    ],
+    "agents": {
+      "agents": [
+        {
+          "slug": "watch-sonnet",
+          "name": "Watch - Sonnet",
+          "description": "Default agent for the AW Apple Watch / iPhone app. General-purpose, tuned for a reply that fits on a wrist or is read aloud.",
+          "system_prompt_file": "prompts/watch-agent.md",
+          "model_slug": "claude-runner-sonnet",
+          "agent_config_slug": "agent-config-aw-full",
+          "skill_slugs": [
+            "aw-agent-watch"
+          ],
+          "capabilities": "Inbound-channel agent for aw-mobile (watch / iphone / meta glasses). Same workspace reach as the Telegram channel agents — full filesystem, gateway MCP, docker — but answers under a hard length budget and emits no markdown.",
+          "use_cases": [
+            "ask the workspace something from the Apple Watch",
+            "dictate a task while walking",
+            "check on a running agent from the wrist"
+          ],
+          "hidden_from_flow": false,
+          "icon": "watch",
+          "color": "#58a6ff"
+        },
+        {
+          "slug": "watch-opus",
+          "name": "Watch - Opus",
+          "description": "The Watch channel agent on Opus — for a question worth the extra latency and cost, dictated rather than typed.",
+          "system_prompt_file": "prompts/watch-agent.md",
+          "model_slug": "claude-runner-opus",
+          "agent_config_slug": "agent-config-aw-full",
+          "skill_slugs": [
+            "aw-agent-watch"
+          ],
+          "capabilities": "As watch-sonnet, on Opus. Same channel contract and the same hard length budget — a stronger model is not licence for a longer reply.",
+          "use_cases": [
+            "a harder question asked from the watch",
+            "reason about something while away from the desk"
+          ],
+          "hidden_from_flow": false,
+          "icon": "watch",
+          "color": "#b794f4"
+        },
+        {
+          "slug": "watch-fable",
+          "name": "Watch - Fable",
+          "description": "The Watch channel agent on Fable — the fast one, for the quick back-and-forth a wrist is actually good at.",
+          "system_prompt_file": "prompts/watch-agent.md",
+          "model_slug": "claude-runner-fable",
+          "agent_config_slug": "agent-config-aw-full",
+          "skill_slugs": [
+            "aw-agent-watch"
+          ],
+          "capabilities": "As watch-sonnet, on Fable. The lowest-latency of the three, which matters most on the device where the user is physically holding their arm up.",
+          "use_cases": [
+            "quick question from the watch",
+            "rapid dictated back-and-forth"
+          ],
+          "hidden_from_flow": false,
+          "icon": "watch",
+          "color": "#f6ad55"
+        }
+      ]
+    }
+  },
+  "dependencies": {
+    "apps": [
+      {
+        "id": "agents-platform-runners",
+        "version": ">=0.37.0",
+        "required": false,
+        "reason": "Provides the contributes.agents surface — it holds the Agents Platform base URL and identity token, which core does not. Non-required on purpose: an agent declaration that arrives before the provider is HELD and replayed the moment one appears, so this app installs cleanly either way and the skill stays usable by hand in the meantime."
+      }
+    ]
+  },
+  "migrations": {}
+}
