@@ -25,15 +25,31 @@ and actively wrong when read aloud by text-to-speech, which pronounces every
 asterisk. Installing this app is what puts agents that know they are talking
 to a watch into a workspace.
 
-Deliberately NOT declared here: ``agent-config-aw-full``, the config bundle
-the three agents run under. It exists in the platform already and its
-``mcp_config`` carries a live gateway bearer token — an app repo is public,
-so the token cannot ride in a manifest. The agents reference the slug and
-the platform resolves it. The cost is that installing into a workspace that
-has never had that config produces agents pointing at a bundle that isn't
-there, and the provisioner will not complain (Agents Platform stores the
-reference as a plain string). ``tests/test_manifest.py`` pins the slug so
-the assumption is at least written down and checked.
+``agent-config-aw-full`` — the config bundle the three agents run under — is
+declared here **by reference**: ``mcp_servers: ["aw-gateway"]``, never a
+literal ``mcp_config``. The provisioner expands that name against this
+workspace's own ``.mcp.json`` at activation, so the live URL and bearer token
+are resolved at deploy time and nothing credential-bearing is committed to
+this (public) repo.
+
+It used to be left undeclared, on the reasoning that its ``mcp_config``
+carries a live token and a manifest cannot hold one. True, but it answered
+the wrong question: the by-reference form exists precisely so an app can
+declare a gateway-backed config without holding the credential. Leaving it
+undeclared meant nobody owned the row. It sat in the platform DB with a
+hand-set address (``127.0.0.1:9200``, which is the agent's OWN container, not
+the gateway's) and a bearer token that had since been rotated. Every agent
+running under it got **zero** MCP tools — not a missing tool, all of them —
+and said so only as "I don't have access to that", which reads like a
+capability limit rather than a broken connection (Frederico, 2026-08-18:
+"o agente que roda nele tá falando que nao consegue ver minha localização").
+
+Declaring it also makes the repair automatic rather than a one-off: the
+provisioner seeds content once but **re-asserts credentials on every
+activation** for by-reference entries (see ``_refresh_mcp_credentials``), so a
+rotated token or a changed gateway address heals itself on the next install
+or restart, in every workspace, instead of needing someone to notice and run
+an UPDATE by hand.
 
 Seed-once, never updated (see aw-workspace's ``src/apps/agents.py``):
 re-installing will not overwrite a system prompt the user has since tuned.

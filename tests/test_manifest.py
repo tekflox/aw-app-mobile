@@ -86,12 +86,43 @@ def test_every_agent_uses_the_platform_owned_config_bundle(agents):
         assert a["agent_config_slug"] == EXPECTED_AGENT_CONFIG
 
 
-def test_the_config_bundle_is_referenced_but_never_declared(manifest):
-    """Guards the one thing that must not regress: a future edit 'helpfully'
-    inlining agent-config-aw-full would commit a live gateway bearer token to
-    a public repo."""
-    declared_configs = manifest["contributes"]["agents"].get("agent_configs", [])
-    assert EXPECTED_AGENT_CONFIG not in {c["slug"] for c in declared_configs}
+def _declared_config(manifest):
+    for c in manifest["contributes"]["agents"].get("agent_configs", []):
+        if c["slug"] == EXPECTED_AGENT_CONFIG:
+            return c
+    raise AssertionError(f"{EXPECTED_AGENT_CONFIG} is not declared by this app")
+
+
+def test_the_config_bundle_is_declared_by_reference(manifest):
+    """It must be declared — an undeclared config is a row nobody owns, and
+    that is how this one ended up pointing at `127.0.0.1:9200` (the agent's
+    own container, not the gateway) with a rotated token, giving every agent
+    under it zero MCP tools.
+
+    Declaring it is also what makes the repair automatic: the provisioner
+    re-asserts credentials on every activation, but only for by-reference
+    entries.
+    """
+    cfg = _declared_config(manifest)
+    assert cfg["mcp_servers"] == ["aw-gateway"]
+
+
+def test_the_config_bundle_carries_no_credential(manifest):
+    """The original guard, kept and sharpened. This repo is public: the point
+    was never 'do not declare it', it was 'do not commit the token'. The
+    by-reference form satisfies both — the provisioner resolves URL and token
+    from the workspace's own .mcp.json at activation.
+    """
+    cfg = _declared_config(manifest)
+    assert "mcp_config" not in cfg, "a literal mcp_config would inline the bearer token"
+    assert "headers" not in cfg
+    # Prose is exempt: this config's own description explains why the token is
+    # NOT here, and a blunt substring scan would flag the explanation itself.
+    # What must stay clean is everything that becomes configuration.
+    payload = {k: v for k, v in cfg.items() if k not in ("description", "name")}
+    blob = json.dumps(payload).lower()
+    for leak in ("authorization", "bearer", "token", "9200", "127.0.0.1"):
+        assert leak not in blob, f"{leak!r} must not appear in a public manifest"
 
 
 def test_every_agent_carries_the_watch_skill(agents, manifest):
