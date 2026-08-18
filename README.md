@@ -3,12 +3,52 @@
 The workspace half of **aw-mobile** — the AW iPhone app, the Apple Watch app
 and the Meta glasses webapp.
 
-It contributes two things:
+It contributes three things:
 
 * the **Health window** — a React view over the HealthKit samples and
   location history the phone has been syncing since 2017 (see below);
+* **13 MCP tools** so an agent can answer "where was I on Tuesday?" or "how
+  did I sleep?", save a place by name, and log a meal (see below);
 * the **agents** those clients talk to, plus the skill that tells them how to
   answer on a wrist.
+
+## The MCP tools
+
+Ported from the monolith's `src/mcp/mobile_app.py` (server `aw-mobile-app`
+v2.0.0), **with the names unchanged**. The gateway prefixes by server name, so
+they reach agents as:
+
+| Tool | Full name on the gateway |
+|---|---|
+| `get_location` | `aw__aw_mobile_app__get_location` |
+| `get_location_history` | `aw__aw_mobile_app__get_location_history` |
+| `get_location_stops` | `aw__aw_mobile_app__get_location_stops` |
+| `save_location_annotation` | `aw__aw_mobile_app__save_location_annotation` |
+| `search_location_annotations` | `aw__aw_mobile_app__search_location_annotations` |
+| `list_location_annotations` | `aw__aw_mobile_app__list_location_annotations` |
+| `update_location_annotation` | `aw__aw_mobile_app__update_location_annotation` |
+| `delete_location_annotation` | `aw__aw_mobile_app__delete_location_annotation` |
+| `log_health_event` | `aw__aw_mobile_app__log_health_event` |
+| `list_health_log` | `aw__aw_mobile_app__list_health_log` |
+| `get_health_samples` | `aw__aw_mobile_app__get_health_samples` |
+| `sync_health_now` | `aw__aw_mobile_app__sync_health_now` |
+| `get_devices` | `aw__aw_mobile_app__get_devices` |
+
+The monolith's other 19 tools (push notifications, the glasses display,
+session pinning, watch dumps) drive the device rather than read its data, and
+are not ported here.
+
+**`contributes.mcp` in `aw-app.json` registers nothing.** It is the
+marketplace's "what you get" list. The gateway only ever finds an upstream by
+scanning installed apps for a root `mcp.json`, which `mcp_config.write_mcp_json`
+writes on every activate (`plugin.py`). An app that declares the manifest block
+and stops there installs clean, passes `aw-workspace-cli doctor`, and serves
+zero tools — with no error anywhere. That is the single failure mode worth
+remembering about this file.
+
+Four of the tools **write** (`save`/`update`/`delete_location_annotation`,
+`log_health_event`). They go through the same workspace-scoped door and the
+same tenant gate as the reads — see below.
 
 Installing this app into a workspace creates the agents in that tenant's
 Agents Platform and adds `Health` to the Workspace nav.
@@ -38,9 +78,17 @@ server-side. It never reaches a browser.
 
 ```
 browser ──/api/apps/mobile/health/*──▶ this app ──Bearer awlk_──▶ aw-backend
-          (IdentityGuard)                                        (require_workspace_actor
-                                                                  + legacy-schema tenant gate)
+gateway ──/api/apps/mobile/mcp───────▶            (health_client)  (require_workspace_actor
+          (IdentityGuard, X-Api-Key)                                + legacy-schema tenant gate)
 ```
+
+Both doors are the same hop. aw-backend serves two workspace-scoped
+namespaces: `/api/workspaces/{slug}/health/*` (samples, series, log) and
+`/api/workspaces/{slug}/mobile/*` (location, annotations, devices). The MCP
+writes land there too, under the same gate — `location_annotations` and
+`health_log_entries` have no workspace column either, and the argument is
+stronger for a write than for a read: the failure mode is not reading someone
+else's history but adding rows to it.
 
 The window asks for the catalog first, then for buckets, and fetches raw
 readings only when you click into one bucket — so the payload is bounded by
