@@ -1,0 +1,13 @@
+{
+  "name": "mobile-app-ui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Frontend for aw-app-mobile — the Health window. `npm run build` produces ui/dist/mobile.js, the bundle aw-app.json's contributes.frontend.bundle points at.",
+  "scripts": {
+    "build": "vite build"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  }
+}

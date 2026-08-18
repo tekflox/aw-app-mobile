@@ -45,8 +45,21 @@ pnpm-debug.log*
 ui/.vite/
 dist/
 build/
-ui/dist/
 ui/build/
+# ...except the plugin bundle itself. The marketplace installs an app by
+# fetching this repo — there is no build step anywhere in that path (see
+# .github/workflows/release.yml, which only cuts a tag), so an un-committed
+# ui/dist/mobile.js means contributes.frontend.bundle points at a file that
+# does not exist on the installed app and the window body silently renders
+# nothing. aw-app-architecture commits its bundle for the same reason.
+#
+# The un-ignore of the directory has to come first: git does not descend into
+# an excluded directory, so `!ui/dist/mobile.js` under a blanket `dist/` never
+# matches anything and the bundle stays silently untracked — which is exactly
+# the failure this exception exists to prevent.
+!ui/dist/
+ui/dist/*
+!ui/dist/mobile.js
 
 # Test and browser automation output
 test-results/

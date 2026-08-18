@@ -2,12 +2,13 @@
   "manifest_version": 1,
   "id": "mobile",
   "name": "AW Mobile",
-  "version": "0.2.0",
-  "description": "The workspace half of aw-mobile \u2014 the AW iPhone app, the Apple Watch app and the Meta glasses webapp. Installing it into a workspace creates the agents those clients talk to (Sonnet / Opus / Fable) in that tenant's Agents Platform, plus the aw-agent-watch skill that tells them how to answer on a 40mm screen or through text-to-speech. Nothing else in this workspace knows that a reply read aloud must carry no markdown; this app is where that contract lives.",
+  "version": "0.3.0",
+  "description": "Your Apple Health history, in a window. Nine years of heart rate, sleep, steps, workouts and where you were \u2014 charted by day, week or month, with a drill-down to the individual readings. Also the workspace half of aw-mobile: installing it creates the agents the iPhone, Apple Watch and Meta glasses talk to, tuned to answer on a 40mm screen or read aloud.",
   "tier": "inprocess",
-  "requires_ui_refresh": false,
+  "requires_ui_refresh": true,
   "category": "Runnables",
   "publisher": "TekFlox",
+  "icon": "activity",
   "resource_estimate": {
     "cpu": "low",
     "memory": "low",
@@ -16,13 +17,38 @@
   "runtime": {
     "python": ">=3.11",
     "entrypoint": "mobile_app.plugin:MobileAppPlugin",
-    "pip_requires": []
+    "pip_requires": [
+      "httpx"
+    ]
   },
   "permissions": [
-    "agents:contribute"
+    "agents:contribute",
+    "net:outbound",
+    "routes:register",
+    "ui:code",
+    "ui:slots:core.nav.workspace"
   ],
   "config_visible": false,
   "contributes": {
+    "routes": [
+      {
+        "prefix": "/api/apps/mobile"
+      }
+    ],
+    "windows": [
+      {
+        "id": "mobile.health",
+        "title": "Health",
+        "icon": "activity",
+        "body": {
+          "type": "component"
+        }
+      }
+    ],
+    "frontend": {
+      "mode": "component",
+      "bundle": "ui/dist/mobile.js"
+    },
     "skills": [
       {
         "id": "aw-agent-watch",

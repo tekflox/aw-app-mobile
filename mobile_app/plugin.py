@@ -2,12 +2,20 @@
 Entrypoint referenced by aw-app.json's runtime.entrypoint
 ("mobile_app.plugin:MobileAppPlugin").
 
-This app is deliberately almost empty. Everything it delivers — the three
-Watch channel agents and the ``aw-agent-watch`` skill that defines how they
-answer — is *declared* in ``aw-app.json`` and seeded by the workspace's own
-contribution surfaces (``contributes.agents``, ``contributes.skills``).
-There is no HTTP route, no window and no CLI, so there is nothing for
-``activate`` to register.
+Most of what this app delivers — the three Watch channel agents and the
+``aw-agent-watch`` skill that defines how they answer — is *declared* in
+``aw-app.json`` and seeded by the workspace's own contribution surfaces
+(``contributes.agents``, ``contributes.skills``), with nothing for
+``activate`` to do.
+
+The one runtime surface is the **Health** window: ``routes.build_routes()``
+mounted at ``/api/apps/mobile``, proxying aw-backend's workspace-scoped
+health reads so the ``awlk_`` host token stays server-side (see
+``health_client.py``). Registering the routes is unconditional even when that
+credential is absent — the sub-app answers ``/health/status`` with
+``configured: false``, which is how the window can say "this workspace has no
+route to the data" instead of drawing an empty chart that reads as "you have
+no health history".
 
 Why the app exists at all, then: an aw-mobile client (iPhone, Apple Watch,
 Meta glasses) picks an agent out of whatever the tenant's Agents Platform
@@ -36,11 +44,14 @@ from __future__ import annotations
 
 import logging
 
+from . import routes as routes_mod
+
 log = logging.getLogger("aw_apps.mobile")
 
 
 class MobileAppPlugin:
-    """Tier-1 in-process plugin with no runtime surface of its own."""
+    """Tier-1 in-process plugin: the Health window's backend, plus the
+    declared agents/skill the runtime seeds on its own."""
 
     def __init__(self, ctx=None):
         self.ctx = ctx
@@ -51,6 +62,11 @@ class MobileAppPlugin:
         # The contribution registries run from the framework's own activation
         # path, not from here — an app declares, the runtime dispatches. All
         # this needs to do is come up cleanly so that dispatch happens.
+        if self.ctx is not None and getattr(self.ctx, "routes", None) is not None:
+            self.ctx.routes.register(
+                routes_mod.build_routes(getattr(self.ctx, "config", {}) or {})
+            )
+            log.info("aw-app-mobile: health routes mounted at /api/apps/mobile")
         log.info(
             "aw-app-mobile active — watch agents and the aw-agent-watch skill "
             "are seeded by the workspace from aw-app.json's contributes block"
