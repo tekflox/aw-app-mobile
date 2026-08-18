@@ -2,7 +2,7 @@
   "manifest_version": 1,
   "id": "mobile",
   "name": "AW Mobile",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Your Apple Health history, in a window. Nine years of heart rate, sleep, steps, workouts and where you were \u2014 charted by day, week or month, with a drill-down to the individual readings. Also the workspace half of aw-mobile: installing it creates the agents the iPhone, Apple Watch and Meta glasses talk to, tuned to answer on a 40mm screen or read aloud.",
   "tier": "inprocess",
   "requires_ui_refresh": true,
