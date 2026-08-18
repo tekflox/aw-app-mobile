@@ -3,9 +3,71 @@
 The workspace half of **aw-mobile** — the AW iPhone app, the Apple Watch app
 and the Meta glasses webapp.
 
-Installing this app into a workspace creates, in that tenant's Agents
-Platform, the agents those clients talk to, and ships the skill that tells
-them how to answer on a wrist.
+It contributes two things:
+
+* the **Health window** — a React view over the HealthKit samples and
+  location history the phone has been syncing since 2017 (see below);
+* the **agents** those clients talk to, plus the skill that tells them how to
+  answer on a wrist.
+
+Installing this app into a workspace creates the agents in that tenant's
+Agents Platform and adds `Health` to the Workspace nav.
+
+## The Health window
+
+~10M samples across 20 metric types, and until now none of it was readable.
+aw-backend's `GET /api/health/samples` takes `since_ts` but no upper bound,
+orders `start_ts DESC` and caps at 1000 rows — so "the last 1000 heart-rate
+readings" is about 40 hours, and no parameter reaches 2019.
+
+The companion change in **aw-backend** opens
+`/api/workspaces/{slug}/health/*`: a metric catalog, buckets aggregated in
+SQL by hour/day/week/month, and a sample read with a real window
+(`from_ts` + `until_ts` + sort direction). This app is the credential
+boundary in front of it.
+
+**Why a proxy and not a direct call.** The original route sits behind
+aw-backend's legacy single-owner gate (`aw_jwt` cookie or `X-Api-Key`), and
+nothing in a workspace holds either. What a workspace holds is
+`AW_WORKSPACE_HOST_TOKEN`, the durable `awlk_` credential from the
+`aw-remote-host` `/link` handshake — accepted only by
+`require_workspace_actor`, and only on routes carrying the workspace slug.
+So the window calls same-origin `/api/apps/mobile/health/*`, already behind
+the runtime's IdentityGuard, and `health_client.py` attaches the token
+server-side. It never reaches a browser.
+
+```
+browser ──/api/apps/mobile/health/*──▶ this app ──Bearer awlk_──▶ aw-backend
+          (IdentityGuard)                                        (require_workspace_actor
+                                                                  + legacy-schema tenant gate)
+```
+
+The window asks for the catalog first, then for buckets, and fetches raw
+readings only when you click into one bucket — so the payload is bounded by
+bucket count (six years of months = 72 rows), never by sample count.
+
+`GET /api/apps/mobile/health/status` answers whether this workspace has a
+credential at all. It exists because "no data" and "no route to the data"
+look identical in a chart, and only one of them is a true claim about
+someone's health history.
+
+### Frontend
+
+`ui/src/plugin.jsx` → `ui/dist/mobile.js` (`cd ui && npm run build`). **The
+built bundle is committed**: nothing in the marketplace install path builds
+it, so an un-committed bundle installs cleanly and renders an empty window.
+
+Two rules that bundle lives under, both learned the expensive way:
+
+* **Only Tailwind classes core already ships.** The SPA's CSS was compiled
+  long before this bundle loads, from its own source, so a class this file
+  invents is simply absent at runtime — silently, and the symptom reads as a
+  layout bug. Everything dimensional goes through `style={{…}}`.
+* **Chart colours are fixed hexes, not `var(--color-accent)`.** The accent is
+  theme-dependent, so a chart built on it changes hue per theme and can never
+  be validated once. The palette is slots 1–3 of the reference categorical
+  palette, each mode's own steps, chosen at runtime from the computed
+  `--color-bg-primary` luminance.
 
 | Agent | Model | For |
 |---|---|---|

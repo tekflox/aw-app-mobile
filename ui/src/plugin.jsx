@@ -1027,6 +1027,19 @@ export function register(host) {
               workspace on the legacy schema.
             </div>
           )}
+          {/* A 404 is not "your data is missing" — it is aw-backend answering
+              that the route itself is not there, which happens for exactly one
+              reason: that service is still running a build without it. Left as
+              a bare "Not Found" this reads as a bug in the window, and the
+              person seeing it has no way to know the fix is a deploy. */}
+          {error.status === 404 && (
+            <div style={{ marginTop: 8 }}>
+              aw-backend has no
+              <span style={{ ...S.mono }}> /api/workspaces/&lt;slug&gt;/health </span>
+              route — it is running a build from before this feature. The data
+              is fine; the service needs deploying.
+            </div>
+          )}
           <button onClick={load} style={{ ...S.btn, marginTop: 12 }}>
             <Icon d={ICON.refresh} size={11} /> Retry
           </button>

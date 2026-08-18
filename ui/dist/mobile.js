@@ -80,30 +80,30 @@ function Be(e) {
   return e <= 3 * B ? "hour" : e <= 120 * B ? "day" : e <= 3 * 365 * B ? "week" : "month";
 }
 function ze(e) {
-  const { useState: p, useEffect: O, useCallback: ne, useMemo: G, useRef: ae } = e.React, me = (t, l) => e.sdk.api.fetch(`/api/apps/${Ce}${t}`, l), j = async (t) => {
+  const { useState: p, useEffect: O, useCallback: ae, useMemo: G, useRef: ne } = e.React, me = (t, l) => e.sdk.api.fetch(`/api/apps/${Ce}${t}`, l), j = async (t) => {
     const l = await me(t);
-    let n = null;
+    let a = null;
     try {
-      n = await l.json();
+      a = await l.json();
     } catch {
     }
     if (!l.ok) {
-      const a = new Error(n && (n.detail || n.error) || `HTTP ${l.status}`);
-      throw a.status = l.status, a;
+      const n = new Error(a && (a.detail || a.error) || `HTTP ${l.status}`);
+      throw n.status = l.status, n;
     }
-    return n;
+    return a;
   }, q = (t) => {
     const l = new URLSearchParams();
-    for (const [a, r] of Object.entries(t))
-      r != null && r !== "" && l.set(a, String(r));
-    const n = l.toString();
-    return n ? `?${n}` : "";
+    for (const [n, r] of Object.entries(t))
+      r != null && r !== "" && l.set(n, String(r));
+    const a = l.toString();
+    return a ? `?${a}` : "";
   }, R = (t, l = 1) => t == null || Number.isNaN(t) ? "—" : Math.abs(t) >= 1e4 ? Math.round(t).toLocaleString() : t.toFixed(l), U = (t, l) => {
-    const n = new Date(t * 1e3);
-    return l === "hour" ? n.toLocaleString(void 0, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : l === "month" ? n.toLocaleDateString(void 0, { month: "short", year: "numeric" }) : n.toLocaleDateString(void 0, { month: "short", day: "numeric", year: "numeric" });
-  }, he = (t, l, n) => {
     const a = new Date(t * 1e3);
-    return l === "hour" ? a.toLocaleTimeString(void 0, { hour: "2-digit", minute: "2-digit" }) : l === "month" || n > 300 ? a.toLocaleDateString(void 0, { month: "short", year: "numeric" }) : a.toLocaleDateString(void 0, { month: "short", day: "numeric" });
+    return l === "hour" ? a.toLocaleString(void 0, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : l === "month" ? a.toLocaleDateString(void 0, { month: "short", year: "numeric" }) : a.toLocaleDateString(void 0, { month: "short", day: "numeric", year: "numeric" });
+  }, he = (t, l, a) => {
+    const n = new Date(t * 1e3);
+    return l === "hour" ? n.toLocaleTimeString(void 0, { hour: "2-digit", minute: "2-digit" }) : l === "month" || a > 300 ? n.toLocaleDateString(void 0, { month: "short", year: "numeric" }) : n.toLocaleDateString(void 0, { month: "short", day: "numeric" });
   }, te = (t) => new Date(t * 1e3).toLocaleString(void 0, {
     year: "numeric",
     month: "short",
@@ -115,7 +115,7 @@ function ze(e) {
   function pe() {
     const [t, l] = p("dark");
     return O(() => {
-      const n = () => {
+      const a = () => {
         try {
           const i = getComputedStyle(document.documentElement).getPropertyValue("--color-bg-primary").trim().match(/^#([0-9a-f]{6})$/i);
           if (!i) return;
@@ -124,12 +124,12 @@ function ze(e) {
         } catch {
         }
       };
-      n();
-      const a = new MutationObserver(n);
-      return a.observe(document.documentElement, { attributes: !0, attributeFilter: ["class", "data-theme", "style"] }), () => a.disconnect();
+      a();
+      const n = new MutationObserver(a);
+      return n.observe(document.documentElement, { attributes: !0, attributeFilter: ["class", "data-theme", "style"] }), () => n.disconnect();
     }, []), Re[t];
   }
-  function J({ d: t, size: l = 12, color: n = "currentColor", style: a }) {
+  function J({ d: t, size: l = 12, color: a = "currentColor", style: n }) {
     return /* @__PURE__ */ e.h(
       "svg",
       {
@@ -137,11 +137,11 @@ function ze(e) {
         height: l,
         viewBox: "0 0 24 24",
         fill: "none",
-        stroke: n,
+        stroke: a,
         strokeWidth: "2",
         strokeLinecap: "round",
         strokeLinejoin: "round",
-        style: { flexShrink: 0, ...a }
+        style: { flexShrink: 0, ...n }
       },
       /* @__PURE__ */ e.h("path", { d: t })
     );
@@ -155,12 +155,12 @@ function ze(e) {
       lineHeight: 1.7
     } }, t);
   }
-  function Y({ active: t, onClick: l, children: n, title: a }) {
+  function Y({ active: t, onClick: l, children: a, title: n }) {
     return /* @__PURE__ */ e.h(
       "button",
       {
         onClick: l,
-        title: a,
+        title: n,
         style: {
           ...o.btn,
           color: t ? "var(--color-text-primary)" : "var(--color-text-muted)",
@@ -171,31 +171,31 @@ function ze(e) {
           gap: 5
         }
       },
-      n
+      a
     );
   }
   function le() {
-    const [t, l] = p({ width: 0, height: 0 }), n = ae(null);
-    return [ne((r) => {
-      if (n.current && (n.current.disconnect(), n.current = null), !r) return;
+    const [t, l] = p({ width: 0, height: 0 }), a = ne(null);
+    return [ae((r) => {
+      if (a.current && (a.current.disconnect(), a.current = null), !r) return;
       const i = new ResizeObserver((c) => {
         const d = c[0].contentRect;
         l({ width: d.width, height: d.height });
       });
-      i.observe(r), n.current = i;
+      i.observe(r), a.current = i;
     }, []), t];
   }
   const S = { top: 26, right: 16, bottom: 24, left: 52 };
-  function fe(t, l, n = 4) {
+  function fe(t, l, a = 4) {
     if (!(l > t)) return [t];
-    const a = (l - t) / n, r = Math.pow(10, Math.floor(Math.log10(a))), i = a / r, c = (i >= 5 ? 10 : i >= 2 ? 5 : i >= 1 ? 2 : 1) * r, d = [];
+    const n = (l - t) / a, r = Math.pow(10, Math.floor(Math.log10(n))), i = n / r, c = (i >= 5 ? 10 : i >= 2 ? 5 : i >= 1 ? 2 : 1) * r, d = [];
     for (let u = Math.ceil(t / c) * c; u <= l + 1e-9; u += c) d.push(u);
     return d;
   }
-  function ye({ points: t, bucket: l, meta: n, unit: a, palette: r, onPick: i, picked: c, height: d }) {
-    const [u, { width: g }] = le(), [m, _] = p(null), x = ae(null), b = Math.max(180, Math.min(d || 240, 520)), M = Math.max(g, 240), f = M - S.left - S.right, $ = b - S.top - S.bottom, E = n.agg === "avg" ? "line" : "bar", Z = G(() => {
+  function ye({ points: t, bucket: l, meta: a, unit: n, palette: r, onPick: i, picked: c, height: d }) {
+    const [u, { width: g }] = le(), [m, _] = p(null), x = ne(null), b = Math.max(180, Math.min(d || 240, 520)), M = Math.max(g, 240), f = M - S.left - S.right, $ = b - S.top - S.bottom, E = a.agg === "avg" ? "line" : "bar", Z = G(() => {
       if (!t || t.length === 0) return null;
-      const s = (T) => n.agg === "sum" ? T.sum : n.agg === "duration" ? T.duration_s === null ? null : T.duration_s / 3600 : T.avg, v = t.map((T) => ({ ...T, v: s(T) })).filter((T) => T.v !== null);
+      const s = (T) => a.agg === "sum" ? T.sum : a.agg === "duration" ? T.duration_s === null ? null : T.duration_s / 3600 : T.avg, v = t.map((T) => ({ ...T, v: s(T) })).filter((T) => T.v !== null);
       if (v.length === 0) return null;
       const K = v[0].bucket_ts, P = de[l] || B, ee = v[v.length - 1].bucket_ts + P;
       let H, D;
@@ -206,7 +206,7 @@ function ze(e) {
       } else
         H = 0, D = Math.max(...v.map((T) => T.v)) * 1.08 || 1;
       return { rows: v, t0: K, t1: ee, lo: H, hi: D, span: P };
-    }, [t, l, n.agg, E]);
+    }, [t, l, a.agg, E]);
     if (!Z)
       return /* @__PURE__ */ e.h("div", { ref: u }, /* @__PURE__ */ e.h(w, null, "No samples in this range."));
     const { rows: z, t0: y, t1: W, lo: L, hi: A, span: N } = Z, C = (s) => S.left + (s - y) / (W - y) * f, h = (s) => S.top + $ - (s - L) / (A - L) * $, F = fe(L, A, 5), re = Math.max(2, Math.min(6, Math.floor(f / 90))), Q = Array.from({ length: re + 1 }, (s, v) => y + (W - y) * v / re), Te = z.map((s, v) => `${v === 0 ? "M" : "L"}${C(s.bucket_ts + N / 2).toFixed(2)},${h(s.v).toFixed(2)}`).join(" "), oe = E === "line" && z.some((s) => s.min !== null && s.max !== null) ? `${z.map((s, v) => `${v === 0 ? "M" : "L"}${C(s.bucket_ts + N / 2).toFixed(2)},${h(s.max ?? s.v).toFixed(2)}`).join(" ")} ${z.slice().reverse().map((s) => `L${C(s.bucket_ts + N / 2).toFixed(2)},${h(s.min ?? s.v).toFixed(2)}`).join(" ")} Z` : null, ie = Math.max(1, f / ((W - y) / N) - 2), se = (s) => {
@@ -307,8 +307,8 @@ function ze(e) {
           fontWeight: "600",
           fill: "var(--color-text-primary)"
         },
-        R($e.v, n.decimals),
-        a ? ` ${a}` : ""
+        R($e.v, a.decimals),
+        n ? ` ${n}` : ""
       ),
       /* @__PURE__ */ e.h(
         "text",
@@ -357,10 +357,10 @@ function ze(e) {
       borderRadius: 6,
       padding: "6px 8px",
       zIndex: 5
-    } }, /* @__PURE__ */ e.h("div", { style: { ...o.label, color: "var(--color-text-muted)", marginBottom: 3 } }, U(m.bucket_ts, l)), /* @__PURE__ */ e.h("div", { style: { fontSize: k.row, color: "var(--color-text-primary)", fontWeight: 600 } }, R(m.v, n.decimals), a ? ` ${a}` : ""), m.min !== null && m.max !== null && n.agg === "avg" && /* @__PURE__ */ e.h("div", { style: { ...o.mono, color: "var(--color-text-muted)" } }, R(m.min, n.decimals), " – ", R(m.max, n.decimals)), /* @__PURE__ */ e.h("div", { style: { ...o.mono, color: "var(--color-text-muted)" } }, m.samples.toLocaleString(), " samples")));
+    } }, /* @__PURE__ */ e.h("div", { style: { ...o.label, color: "var(--color-text-muted)", marginBottom: 3 } }, U(m.bucket_ts, l)), /* @__PURE__ */ e.h("div", { style: { fontSize: k.row, color: "var(--color-text-primary)", fontWeight: 600 } }, R(m.v, a.decimals), n ? ` ${n}` : ""), m.min !== null && m.max !== null && a.agg === "avg" && /* @__PURE__ */ e.h("div", { style: { ...o.mono, color: "var(--color-text-muted)" } }, R(m.min, a.decimals), " – ", R(m.max, a.decimals)), /* @__PURE__ */ e.h("div", { style: { ...o.mono, color: "var(--color-text-muted)" } }, m.samples.toLocaleString(), " samples")));
   }
-  function ve({ metrics: t, selected: l, onSelect: n }) {
-    const a = G(() => {
+  function ve({ metrics: t, selected: l, onSelect: a }) {
+    const n = G(() => {
       const r = /* @__PURE__ */ new Map();
       for (const i of t) {
         const c = X(i).group;
@@ -368,13 +368,13 @@ function ze(e) {
       }
       return Ae.filter((i) => r.has(i)).map((i) => [i, r.get(i).sort((c, d) => X(c).label.localeCompare(X(d).label))]);
     }, [t]);
-    return /* @__PURE__ */ e.h("div", { className: "overflow-auto", style: { padding: "6px 6px 12px" } }, a.map(([r, i]) => /* @__PURE__ */ e.h("div", { key: r, style: { marginBottom: 8 } }, /* @__PURE__ */ e.h("div", { style: { ...o.label, color: "var(--color-text-muted)", padding: "4px 6px" } }, r), i.map((c) => {
+    return /* @__PURE__ */ e.h("div", { className: "overflow-auto", style: { padding: "6px 6px 12px" } }, n.map(([r, i]) => /* @__PURE__ */ e.h("div", { key: r, style: { marginBottom: 8 } }, /* @__PURE__ */ e.h("div", { style: { ...o.label, color: "var(--color-text-muted)", padding: "4px 6px" } }, r), i.map((c) => {
       const d = l === c.metric_type;
       return /* @__PURE__ */ e.h(
         "div",
         {
           key: c.metric_type,
-          onClick: () => n(c.metric_type),
+          onClick: () => a(c.metric_type),
           className: "flex items-center gap-2 cursor-pointer",
           style: {
             padding: "4px 6px",
@@ -390,7 +390,7 @@ function ze(e) {
       );
     }))));
   }
-  function xe({ metricType: t, bucket: l, point: n, meta: a, onClose: r }) {
+  function xe({ metricType: t, bucket: l, point: a, meta: n, onClose: r }) {
     const [i, c] = p(null), [d, u] = p(null);
     return O(() => {
       let g = !0;
@@ -398,8 +398,8 @@ function ze(e) {
       const m = de[l] || B;
       return j(`/health/samples${q({
         metric_type: t,
-        from_ts: n.bucket_ts,
-        until_ts: n.bucket_ts + m,
+        from_ts: a.bucket_ts,
+        until_ts: a.bucket_ts + m,
         order: "asc",
         limit: 500
       })}`).then((_) => {
@@ -409,15 +409,15 @@ function ze(e) {
       }), () => {
         g = !1;
       };
-    }, [t, l, n.bucket_ts]), /* @__PURE__ */ e.h("div", { style: {
+    }, [t, l, a.bucket_ts]), /* @__PURE__ */ e.h("div", { style: {
       border: "1px solid var(--color-border)",
       borderRadius: 8,
       background: "var(--color-bg-secondary)",
       marginTop: 10,
       overflow: "hidden"
-    } }, /* @__PURE__ */ e.h("div", { className: "flex items-center gap-2", style: { padding: "6px 10px", borderBottom: "1px solid var(--color-border)" } }, /* @__PURE__ */ e.h("span", { style: { fontSize: k.tab, color: "var(--color-text-primary)", fontWeight: 600 } }, U(n.bucket_ts, l)), /* @__PURE__ */ e.h("span", { style: { ...o.mono, color: "var(--color-text-muted)" } }, n.samples.toLocaleString(), " samples"), /* @__PURE__ */ e.h("button", { onClick: r, style: { ...o.btn, marginLeft: "auto", padding: "2px 6px" } }, /* @__PURE__ */ e.h(J, { d: V.close, size: 11 }))), /* @__PURE__ */ e.h("div", { className: "overflow-auto", style: { maxHeight: 220 } }, d && /* @__PURE__ */ e.h(w, null, "Couldn’t load samples — ", d), !d && i === null && /* @__PURE__ */ e.h(w, null, "Loading…"), i && i.length === 0 && /* @__PURE__ */ e.h(w, null, "No individual samples in this bucket."), i && i.length > 0 && /* @__PURE__ */ e.h("table", { style: { width: "100%", borderCollapse: "collapse" } }, /* @__PURE__ */ e.h("thead", null, /* @__PURE__ */ e.h("tr", null, /* @__PURE__ */ e.h("th", { style: o.th }, "When"), /* @__PURE__ */ e.h("th", { style: o.th }, "Value"), /* @__PURE__ */ e.h("th", { style: o.th }, "Source"))), /* @__PURE__ */ e.h("tbody", null, i.map((g, m) => /* @__PURE__ */ e.h("tr", { key: m }, /* @__PURE__ */ e.h("td", { style: { ...o.td, ...o.mono, whiteSpace: "nowrap" } }, te(g.start_ts)), /* @__PURE__ */ e.h("td", { style: { ...o.td, color: "var(--color-text-primary)" } }, g.value !== null ? `${R(g.value, a.decimals)} ${g.unit || ""}` : g.text_value || "—"), /* @__PURE__ */ e.h("td", { style: { ...o.td, ...o.mono, color: "var(--color-text-muted)" } }, (g.source_bundle || "").split(".").pop() || "—")))))));
+    } }, /* @__PURE__ */ e.h("div", { className: "flex items-center gap-2", style: { padding: "6px 10px", borderBottom: "1px solid var(--color-border)" } }, /* @__PURE__ */ e.h("span", { style: { fontSize: k.tab, color: "var(--color-text-primary)", fontWeight: 600 } }, U(a.bucket_ts, l)), /* @__PURE__ */ e.h("span", { style: { ...o.mono, color: "var(--color-text-muted)" } }, a.samples.toLocaleString(), " samples"), /* @__PURE__ */ e.h("button", { onClick: r, style: { ...o.btn, marginLeft: "auto", padding: "2px 6px" } }, /* @__PURE__ */ e.h(J, { d: V.close, size: 11 }))), /* @__PURE__ */ e.h("div", { className: "overflow-auto", style: { maxHeight: 220 } }, d && /* @__PURE__ */ e.h(w, null, "Couldn’t load samples — ", d), !d && i === null && /* @__PURE__ */ e.h(w, null, "Loading…"), i && i.length === 0 && /* @__PURE__ */ e.h(w, null, "No individual samples in this bucket."), i && i.length > 0 && /* @__PURE__ */ e.h("table", { style: { width: "100%", borderCollapse: "collapse" } }, /* @__PURE__ */ e.h("thead", null, /* @__PURE__ */ e.h("tr", null, /* @__PURE__ */ e.h("th", { style: o.th }, "When"), /* @__PURE__ */ e.h("th", { style: o.th }, "Value"), /* @__PURE__ */ e.h("th", { style: o.th }, "Source"))), /* @__PURE__ */ e.h("tbody", null, i.map((g, m) => /* @__PURE__ */ e.h("tr", { key: m }, /* @__PURE__ */ e.h("td", { style: { ...o.td, ...o.mono, whiteSpace: "nowrap" } }, te(g.start_ts)), /* @__PURE__ */ e.h("td", { style: { ...o.td, color: "var(--color-text-primary)" } }, g.value !== null ? `${R(g.value, n.decimals)} ${g.unit || ""}` : g.text_value || "—"), /* @__PURE__ */ e.h("td", { style: { ...o.td, ...o.mono, color: "var(--color-text-muted)" } }, (g.source_bundle || "").split(".").pop() || "—")))))));
   }
-  function be({ metrics: t, selected: l, onSelect: n, palette: a }) {
+  function be({ metrics: t, selected: l, onSelect: a, palette: n }) {
     const [r, i] = p("90d"), [c, d] = p(null), [u, g] = p(null), [m, _] = p(null), [x, b] = p(!1), [M, f] = p(null), [$, E] = p(!1), [Z, z] = le(), y = t.find((h) => h.metric_type === l), W = y ? X(y) : null, L = G(() => {
       if (!y) return null;
       const h = ue.find((Q) => Q.id === r), F = (y.last_ts || Date.now() / 1e3) + 1;
@@ -463,7 +463,7 @@ function ze(e) {
         bucket: A,
         meta: W,
         unit: N,
-        palette: a,
+        palette: n,
         onPick: f,
         picked: M,
         height: z.height
@@ -479,11 +479,11 @@ function ze(e) {
       }
     ))));
   }
-  function ke({ points: t, bucket: l, meta: n, unit: a }) {
-    return t.length ? /* @__PURE__ */ e.h("table", { style: { width: "100%", borderCollapse: "collapse" } }, /* @__PURE__ */ e.h("thead", null, /* @__PURE__ */ e.h("tr", null, /* @__PURE__ */ e.h("th", { style: o.th }, l), /* @__PURE__ */ e.h("th", { style: o.th }, "samples"), /* @__PURE__ */ e.h("th", { style: o.th }, "min"), /* @__PURE__ */ e.h("th", { style: o.th }, "avg"), /* @__PURE__ */ e.h("th", { style: o.th }, "max"), /* @__PURE__ */ e.h("th", { style: o.th }, n.agg === "duration" ? "hours" : `total${a ? ` (${a})` : ""}`))), /* @__PURE__ */ e.h("tbody", null, t.map((r) => /* @__PURE__ */ e.h("tr", { key: r.bucket_ts }, /* @__PURE__ */ e.h("td", { style: { ...o.td, whiteSpace: "nowrap" } }, U(r.bucket_ts, l)), /* @__PURE__ */ e.h("td", { style: { ...o.td, ...o.mono } }, r.samples.toLocaleString()), /* @__PURE__ */ e.h("td", { style: { ...o.td, ...o.mono } }, R(r.min, n.decimals)), /* @__PURE__ */ e.h("td", { style: { ...o.td, ...o.mono } }, R(r.avg, n.decimals)), /* @__PURE__ */ e.h("td", { style: { ...o.td, ...o.mono } }, R(r.max, n.decimals)), /* @__PURE__ */ e.h("td", { style: { ...o.td, ...o.mono, color: "var(--color-text-primary)" } }, n.agg === "duration" ? R(r.duration_s === null ? null : r.duration_s / 3600, 1) : R(r.sum, n.decimals)))))) : /* @__PURE__ */ e.h(w, null, "No samples in this range.");
+  function ke({ points: t, bucket: l, meta: a, unit: n }) {
+    return t.length ? /* @__PURE__ */ e.h("table", { style: { width: "100%", borderCollapse: "collapse" } }, /* @__PURE__ */ e.h("thead", null, /* @__PURE__ */ e.h("tr", null, /* @__PURE__ */ e.h("th", { style: o.th }, l), /* @__PURE__ */ e.h("th", { style: o.th }, "samples"), /* @__PURE__ */ e.h("th", { style: o.th }, "min"), /* @__PURE__ */ e.h("th", { style: o.th }, "avg"), /* @__PURE__ */ e.h("th", { style: o.th }, "max"), /* @__PURE__ */ e.h("th", { style: o.th }, a.agg === "duration" ? "hours" : `total${n ? ` (${n})` : ""}`))), /* @__PURE__ */ e.h("tbody", null, t.map((r) => /* @__PURE__ */ e.h("tr", { key: r.bucket_ts }, /* @__PURE__ */ e.h("td", { style: { ...o.td, whiteSpace: "nowrap" } }, U(r.bucket_ts, l)), /* @__PURE__ */ e.h("td", { style: { ...o.td, ...o.mono } }, r.samples.toLocaleString()), /* @__PURE__ */ e.h("td", { style: { ...o.td, ...o.mono } }, R(r.min, a.decimals)), /* @__PURE__ */ e.h("td", { style: { ...o.td, ...o.mono } }, R(r.avg, a.decimals)), /* @__PURE__ */ e.h("td", { style: { ...o.td, ...o.mono } }, R(r.max, a.decimals)), /* @__PURE__ */ e.h("td", { style: { ...o.td, ...o.mono, color: "var(--color-text-primary)" } }, a.agg === "duration" ? R(r.duration_s === null ? null : r.duration_s / 3600, 1) : R(r.sum, a.decimals)))))) : /* @__PURE__ */ e.h(w, null, "No samples in this range.");
   }
   function we({ palette: t }) {
-    const [l, n] = p(7), [a, r] = p(null), [i, c] = p(null);
+    const [l, a] = p(7), [n, r] = p(null), [i, c] = p(null);
     O(() => {
       let u = !0;
       r(null), c(null);
@@ -497,20 +497,20 @@ function ze(e) {
       };
     }, [l]);
     const d = G(() => {
-      if (!a || !a.points.length) return null;
-      const u = a.points, g = u.map((b) => b.latitude), m = u.map((b) => b.longitude), _ = {
+      if (!n || !n.points.length) return null;
+      const u = n.points, g = u.map((b) => b.latitude), m = u.map((b) => b.longitude), _ = {
         minLat: Math.min(...g),
         maxLat: Math.max(...g),
         minLon: Math.min(...m),
         maxLon: Math.max(...m)
       }, x = [...new Set(u.map((b) => b.source))];
       return { pts: u, bounds: _, sources: x };
-    }, [a]);
-    return i ? /* @__PURE__ */ e.h(w, null, "Couldn’t load locations — ", i) : a ? /* @__PURE__ */ e.h("div", { className: "flex flex-col h-full min-h-0" }, /* @__PURE__ */ e.h("div", { className: "flex items-center gap-2 shrink-0", style: { marginBottom: 10 } }, [1, 7, 30, 365].map((u) => /* @__PURE__ */ e.h(Y, { key: u, active: l === u, onClick: () => n(u) }, u === 1 ? "24h" : u === 365 ? "1y" : `${u}d`)), /* @__PURE__ */ e.h("span", { style: { ...o.mono, color: "var(--color-text-muted)", marginLeft: "auto" } }, a.total.toLocaleString(), " fixes", a.total > a.points.length && ` · showing first ${a.points.length.toLocaleString()}`)), d ? /* @__PURE__ */ e.h("div", { className: "flex-1 min-h-0 overflow-auto" }, /* @__PURE__ */ e.h(_e, { model: d, palette: t }), /* @__PURE__ */ e.h("div", { style: { ...o.mono, color: "var(--color-text-muted)", marginTop: 8 } }, d.bounds.minLat.toFixed(4), ", ", d.bounds.minLon.toFixed(4), "  →  ", d.bounds.maxLat.toFixed(4), ", ", d.bounds.maxLon.toFixed(4))) : /* @__PURE__ */ e.h(w, null, "No location fixes in this range.")) : /* @__PURE__ */ e.h(w, null, "Loading…");
+    }, [n]);
+    return i ? /* @__PURE__ */ e.h(w, null, "Couldn’t load locations — ", i) : n ? /* @__PURE__ */ e.h("div", { className: "flex flex-col h-full min-h-0" }, /* @__PURE__ */ e.h("div", { className: "flex items-center gap-2 shrink-0", style: { marginBottom: 10 } }, [1, 7, 30, 365].map((u) => /* @__PURE__ */ e.h(Y, { key: u, active: l === u, onClick: () => a(u) }, u === 1 ? "24h" : u === 365 ? "1y" : `${u}d`)), /* @__PURE__ */ e.h("span", { style: { ...o.mono, color: "var(--color-text-muted)", marginLeft: "auto" } }, n.total.toLocaleString(), " fixes", n.total > n.points.length && ` · showing first ${n.points.length.toLocaleString()}`)), d ? /* @__PURE__ */ e.h("div", { className: "flex-1 min-h-0 overflow-auto" }, /* @__PURE__ */ e.h(_e, { model: d, palette: t }), /* @__PURE__ */ e.h("div", { style: { ...o.mono, color: "var(--color-text-muted)", marginTop: 8 } }, d.bounds.minLat.toFixed(4), ", ", d.bounds.minLon.toFixed(4), "  →  ", d.bounds.maxLat.toFixed(4), ", ", d.bounds.maxLon.toFixed(4))) : /* @__PURE__ */ e.h(w, null, "No location fixes in this range.")) : /* @__PURE__ */ e.h(w, null, "Loading…");
   }
   function _e({ model: t, palette: l }) {
-    const [n, { width: a }] = le(), r = 300, i = Math.max(a, 240), c = 16, { bounds: d, pts: u, sources: g } = t, m = Math.max(d.maxLat - d.minLat, 1e-4), _ = Math.max(d.maxLon - d.minLon, 1e-4), x = (f) => c + (f - d.minLon) / _ * (i - c * 2), b = (f) => r - c - (f - d.minLat) / m * (r - c * 2), M = (f) => [l.s1, l.s2, l.s3][g.indexOf(f) % 3];
-    return /* @__PURE__ */ e.h("div", { ref: n }, /* @__PURE__ */ e.h(
+    const [a, { width: n }] = le(), r = 300, i = Math.max(n, 240), c = 16, { bounds: d, pts: u, sources: g } = t, m = Math.max(d.maxLat - d.minLat, 1e-4), _ = Math.max(d.maxLon - d.minLon, 1e-4), x = (f) => c + (f - d.minLon) / _ * (i - c * 2), b = (f) => r - c - (f - d.minLat) / m * (r - c * 2), M = (f) => [l.s1, l.s2, l.s3][g.indexOf(f) % 3];
+    return /* @__PURE__ */ e.h("div", { ref: a }, /* @__PURE__ */ e.h(
       "svg",
       {
         width: "100%",
@@ -533,17 +533,17 @@ function ze(e) {
     ), g.length >= 2 && /* @__PURE__ */ e.h("div", { className: "flex items-center gap-3", style: { marginTop: 6 } }, g.map((f) => /* @__PURE__ */ e.h("span", { key: f, className: "flex items-center gap-1", style: { fontSize: k.row, color: "var(--color-text-muted)" } }, /* @__PURE__ */ e.h("svg", { width: "9", height: "9", viewBox: "0 0 9 9" }, /* @__PURE__ */ e.h("circle", { cx: "4.5", cy: "4.5", r: "4.5", fill: M(f) })), f))));
   }
   function Se() {
-    const [t, l] = p(null), [n, a] = p(null);
+    const [t, l] = p(null), [a, n] = p(null);
     return O(() => {
       let r = !0;
       return j(`/health/log${q({ limit: 200 })}`).then((i) => {
         r && l(i.entries || []);
       }).catch((i) => {
-        r && a(i.message);
+        r && n(i.message);
       }), () => {
         r = !1;
       };
-    }, []), n ? /* @__PURE__ */ e.h(w, null, "Couldn’t load notes — ", n) : t ? t.length ? /* @__PURE__ */ e.h("div", { className: "overflow-auto h-full" }, /* @__PURE__ */ e.h("table", { style: { width: "100%", borderCollapse: "collapse" } }, /* @__PURE__ */ e.h("thead", null, /* @__PURE__ */ e.h("tr", null, /* @__PURE__ */ e.h("th", { style: o.th }, "When"), /* @__PURE__ */ e.h("th", { style: o.th }, "Category"), /* @__PURE__ */ e.h("th", { style: o.th }, "Note"), /* @__PURE__ */ e.h("th", { style: o.th }, "Where"))), /* @__PURE__ */ e.h("tbody", null, t.map((r, i) => /* @__PURE__ */ e.h("tr", { key: i }, /* @__PURE__ */ e.h("td", { style: { ...o.td, ...o.mono, whiteSpace: "nowrap" } }, te(r.ts)), /* @__PURE__ */ e.h("td", { style: { ...o.td, ...o.label, color: "var(--color-text-muted)" } }, r.category), /* @__PURE__ */ e.h("td", { style: { ...o.td, color: "var(--color-text-primary)" } }, r.text), /* @__PURE__ */ e.h("td", { style: { ...o.td, color: "var(--color-text-muted)" } }, r.location_label || (r.latitude !== null ? `${r.latitude.toFixed(3)}, ${r.longitude.toFixed(3)}` : "—"))))))) : /* @__PURE__ */ e.h(w, null, "No log entries yet. These are the free-text notes logged from chat or the watch.") : /* @__PURE__ */ e.h(w, null, "Loading…");
+    }, []), a ? /* @__PURE__ */ e.h(w, null, "Couldn’t load notes — ", a) : t ? t.length ? /* @__PURE__ */ e.h("div", { className: "overflow-auto h-full" }, /* @__PURE__ */ e.h("table", { style: { width: "100%", borderCollapse: "collapse" } }, /* @__PURE__ */ e.h("thead", null, /* @__PURE__ */ e.h("tr", null, /* @__PURE__ */ e.h("th", { style: o.th }, "When"), /* @__PURE__ */ e.h("th", { style: o.th }, "Category"), /* @__PURE__ */ e.h("th", { style: o.th }, "Note"), /* @__PURE__ */ e.h("th", { style: o.th }, "Where"))), /* @__PURE__ */ e.h("tbody", null, t.map((r, i) => /* @__PURE__ */ e.h("tr", { key: i }, /* @__PURE__ */ e.h("td", { style: { ...o.td, ...o.mono, whiteSpace: "nowrap" } }, te(r.ts)), /* @__PURE__ */ e.h("td", { style: { ...o.td, ...o.label, color: "var(--color-text-muted)" } }, r.category), /* @__PURE__ */ e.h("td", { style: { ...o.td, color: "var(--color-text-primary)" } }, r.text), /* @__PURE__ */ e.h("td", { style: { ...o.td, color: "var(--color-text-muted)" } }, r.location_label || (r.latitude !== null ? `${r.latitude.toFixed(3)}, ${r.longitude.toFixed(3)}` : "—"))))))) : /* @__PURE__ */ e.h(w, null, "No log entries yet. These are the free-text notes logged from chat or the watch.") : /* @__PURE__ */ e.h(w, null, "Loading…");
   }
   const Me = [
     { id: "chart", label: "Metrics" },
@@ -551,7 +551,7 @@ function ze(e) {
     { id: "notes", label: "Notes" }
   ];
   function Le() {
-    const t = pe(), [l, n] = p("chart"), [a, r] = p(null), [i, c] = p(null), [d, u] = p(null), [g, m] = p(null), _ = ne(() => {
+    const t = pe(), [l, a] = p("chart"), [n, r] = p(null), [i, c] = p(null), [d, u] = p(null), [g, m] = p(null), _ = ae(() => {
       u(null), j("/health/status").then((x) => (m(x), x.configured ? j("/health/metrics") : null)).then((x) => {
         if (!x) return;
         const b = x.metrics || [];
@@ -560,7 +560,7 @@ function ze(e) {
         (b.find((f) => f.metric_type === "heart_rate") ? "heart_rate" : b[0] && b[0].metric_type || null));
       }).catch((x) => u(x));
     }, []);
-    return O(_, [_]), d ? /* @__PURE__ */ e.h(w, null, /* @__PURE__ */ e.h("div", { style: { color: "var(--color-text-primary)", marginBottom: 6 } }, "Couldn’t reach the health data."), /* @__PURE__ */ e.h("div", null, d.message), d.status === 403 && /* @__PURE__ */ e.h("div", { style: { marginTop: 8 } }, "This workspace doesn’t own the health dataset — it lives with the workspace on the legacy schema."), /* @__PURE__ */ e.h("button", { onClick: _, style: { ...o.btn, marginTop: 12 } }, /* @__PURE__ */ e.h(J, { d: V.refresh, size: 11 }), " Retry")) : g && !g.configured ? /* @__PURE__ */ e.h(w, null, /* @__PURE__ */ e.h("div", { style: { color: "var(--color-text-primary)", marginBottom: 6 } }, "No route to the health data."), /* @__PURE__ */ e.h("div", null, "The samples live in aw-backend, and this workspace has no", /* @__PURE__ */ e.h("span", { style: { ...o.mono } }, " AW_WORKSPACE_HOST_TOKEN "), "to reach it with — that credential is minted by the aw-remote-host", /* @__PURE__ */ e.h("span", { style: { ...o.mono } }, " /link "), " handshake.")) : a ? a.length ? /* @__PURE__ */ e.h("div", { className: "flex h-full min-h-0", style: { background: "var(--color-bg-primary)" } }, /* @__PURE__ */ e.h(
+    return O(_, [_]), d ? /* @__PURE__ */ e.h(w, null, /* @__PURE__ */ e.h("div", { style: { color: "var(--color-text-primary)", marginBottom: 6 } }, "Couldn’t reach the health data."), /* @__PURE__ */ e.h("div", null, d.message), d.status === 403 && /* @__PURE__ */ e.h("div", { style: { marginTop: 8 } }, "This workspace doesn’t own the health dataset — it lives with the workspace on the legacy schema."), d.status === 404 && /* @__PURE__ */ e.h("div", { style: { marginTop: 8 } }, "aw-backend has no", /* @__PURE__ */ e.h("span", { style: { ...o.mono } }, " /api/workspaces/<slug>/health "), "route — it is running a build from before this feature. The data is fine; the service needs deploying."), /* @__PURE__ */ e.h("button", { onClick: _, style: { ...o.btn, marginTop: 12 } }, /* @__PURE__ */ e.h(J, { d: V.refresh, size: 11 }), " Retry")) : g && !g.configured ? /* @__PURE__ */ e.h(w, null, /* @__PURE__ */ e.h("div", { style: { color: "var(--color-text-primary)", marginBottom: 6 } }, "No route to the health data."), /* @__PURE__ */ e.h("div", null, "The samples live in aw-backend, and this workspace has no", /* @__PURE__ */ e.h("span", { style: { ...o.mono } }, " AW_WORKSPACE_HOST_TOKEN "), "to reach it with — that credential is minted by the aw-remote-host", /* @__PURE__ */ e.h("span", { style: { ...o.mono } }, " /link "), " handshake.")) : n ? n.length ? /* @__PURE__ */ e.h("div", { className: "flex h-full min-h-0", style: { background: "var(--color-bg-primary)" } }, /* @__PURE__ */ e.h(
       "div",
       {
         className: "flex flex-col min-h-0",
@@ -575,7 +575,7 @@ function ze(e) {
         /* @__PURE__ */ e.h(J, { d: V.activity, size: 13, color: "var(--color-text-muted)" }),
         /* @__PURE__ */ e.h("span", { style: { fontSize: k.title, fontWeight: 600, color: "var(--color-text-primary)" } }, "Health")
       ),
-      /* @__PURE__ */ e.h(ve, { metrics: a, selected: i, onSelect: c })
+      /* @__PURE__ */ e.h(ve, { metrics: n, selected: i, onSelect: c })
     ), /* @__PURE__ */ e.h("div", { className: "flex flex-col flex-1 min-w-0 min-h-0" }, /* @__PURE__ */ e.h(
       "div",
       {
@@ -586,7 +586,7 @@ function ze(e) {
         "button",
         {
           key: x.id,
-          onClick: () => n(x.id),
+          onClick: () => a(x.id),
           style: {
             ...o.btn,
             borderColor: "transparent",
@@ -598,7 +598,7 @@ function ze(e) {
         },
         x.label
       ))
-    ), /* @__PURE__ */ e.h("div", { className: "flex-1 min-h-0", style: { padding: 12 } }, l === "chart" && /* @__PURE__ */ e.h(be, { metrics: a, selected: i, onSelect: c, palette: t }), l === "places" && /* @__PURE__ */ e.h(we, { palette: t }), l === "notes" && /* @__PURE__ */ e.h(Se, null)))) : /* @__PURE__ */ e.h(w, null, "No health samples have been synced yet.") : /* @__PURE__ */ e.h(w, null, "Loading…");
+    ), /* @__PURE__ */ e.h("div", { className: "flex-1 min-h-0", style: { padding: 12 } }, l === "chart" && /* @__PURE__ */ e.h(be, { metrics: n, selected: i, onSelect: c, palette: t }), l === "places" && /* @__PURE__ */ e.h(we, { palette: t }), l === "notes" && /* @__PURE__ */ e.h(Se, null)))) : /* @__PURE__ */ e.h(w, null, "No health samples have been synced yet.") : /* @__PURE__ */ e.h(w, null, "Loading…");
   }
   function Ne() {
     return /* @__PURE__ */ e.h(
