@@ -25,8 +25,7 @@
     "agents:contribute",
     "net:outbound",
     "routes:register",
-    "ui:code",
-    "ui:slots:core.nav.workspace"
+    "ui:code"
   ],
   "config_visible": false,
   "contributes": {

@@ -2,9 +2,9 @@
 //
 // Built by `npm run build` -> ui/dist/mobile.js, the file aw-app.json's
 // contributes.frontend.bundle points at. Dynamic-imported by aw-workspace-ui's
-// loadComponentPlugin() once the app is installed with "ui:code" +
-// "ui:slots:core.nav.workspace" granted. Same register(host) shape as
-// aw-app-architecture: every component is declared INSIDE register(host) and
+// loadComponentPlugin() once the app is installed with "ui:code" granted.
+// Same register(host) shape as aw-app-architecture: every component is
+// declared INSIDE register(host) and
 // closes over `host`, so JSX compiles against the ONE shared React instance
 // (react/react-dom stay external — a second React copy breaks hooks).
 //
@@ -1103,33 +1103,10 @@ export function register(host) {
     );
   }
 
-  // The same 3.5×3.5 muted stroke icon every other row in the Workspace
-  // popover uses — a row without one sits an icon-width left of its
-  // neighbours and reads as unfinished. These three Tailwind classes are ones
-  // core itself ships, so they resolve.
-  function HealthNavEntry() {
-    return (
-      <button
-        onClick={() => window.__awOpenAppWindow?.(WINDOW_ID, undefined, 'Health')}
-        className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-white/[0.06] cursor-pointer text-left"
-        title="Heart rate, sleep, activity and places, from Apple Health"
-      >
-        <svg className="w-3.5 h-3.5 shrink-0 text-[var(--color-text-muted)]"
-             viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-             strokeLinecap="round" strokeLinejoin="round">
-          <path d={ICON.activity} />
-        </svg>
-        <span style={{ fontSize: FS.nav, color: 'var(--color-text-primary)' }}>Health</span>
-      </button>
-    );
-  }
-
   host.registerWindow(WINDOW_ID, HealthWindow);
-  // core.nav.workspace — the Workspace popover. The manifest's
-  // contributes.windows entry is what makes __awOpenAppWindow resolve
-  // mobile.health at all; without it this button opens nothing, because the
-  // window body slot has nothing registered to mount into.
-  host.registerSlot('core.nav.workspace', HealthNavEntry);
+  // Health lives in the Apps grid only (contributes.windows below), not in
+  // the Workspace popover — the core.nav.workspace registration this used to
+  // do here was removed on 2026-08-18.
 }
 
 export default register;

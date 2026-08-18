@@ -44,12 +44,13 @@ def manifest() -> dict:
 def test_declares_every_capability_the_window_needs(manifest):
     """Each of these is load-bearing and each fails differently when absent:
     without ``ui:code`` the bundle is never imported (empty window body, the
-    chrome still draws); without the slot grant the nav row is dropped with a
-    console warning; without ``routes:register`` every fetch 404s; without
-    ``net:outbound`` the Tier-1 code may not call aw-backend at all."""
+    chrome still draws); without ``routes:register`` every fetch 404s;
+    without ``net:outbound`` the Tier-1 code may not call aw-backend at all.
+    No ``ui:slots:core.nav.workspace`` grant here on purpose — Health surfaces
+    through the Apps grid (contributes.windows) only, not a Workspace-sidebar
+    nav row (removed 2026-08-18)."""
     perms = set(manifest["permissions"])
-    assert {"ui:code", "ui:slots:core.nav.workspace",
-            "routes:register", "net:outbound"} <= perms
+    assert {"ui:code", "routes:register", "net:outbound"} <= perms
 
 
 def test_window_and_bundle_are_declared_together(manifest):
