@@ -208,10 +208,17 @@ export function register(host) {
     return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
-  const fmtAxisDate = (ts, bucket) => {
+  // Axis labels are chosen by how much time is ON SCREEN, not by the bucket.
+  // Weekly buckets over six years produced "Aug 16 · Jun 16 · Apr 17", which
+  // reads as days of the month and hides the years entirely — the same trap a
+  // 2-digit year falls into ("Aug 21" for August 2021). Past roughly a year of
+  // span, month + four-digit year is both unambiguous and enough resolution.
+  const fmtAxisDate = (ts, bucket, spanDays) => {
     const d = new Date(ts * 1000);
     if (bucket === 'hour') return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-    if (bucket === 'month') return d.toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
+    if (bucket === 'month' || spanDays > 300) {
+      return d.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+    }
     return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   };
 
@@ -286,17 +293,24 @@ export function register(host) {
     );
   }
 
+  // A CALLBACK ref, not useRef + an effect. The measured element is rendered
+  // conditionally (there is no plot until the first series arrives), so an
+  // effect with [] deps runs once while the ref is still null, observes
+  // nothing, and never runs again — the size stays 0 forever and the chart
+  // silently keeps its fallback height. A callback ref fires on every attach
+  // and detach, so it cannot miss the element appearing later.
   function useMeasure() {
-    const ref = useRef(null);
     const [size, setSize] = useState({ width: 0, height: 0 });
-    useEffect(() => {
-      if (!ref.current) return undefined;
+    const observer = useRef(null);
+    const ref = useCallback((node) => {
+      if (observer.current) { observer.current.disconnect(); observer.current = null; }
+      if (!node) return;
       const ro = new ResizeObserver((entries) => {
         const r = entries[0].contentRect;
         setSize({ width: r.width, height: r.height });
       });
-      ro.observe(ref.current);
-      return () => ro.disconnect();
+      ro.observe(node);
+      observer.current = ro;
     }, []);
     return [ref, size];
   }
@@ -312,7 +326,12 @@ export function register(host) {
   // would be a lie), so an index scale would silently close every gap and
   // draw a continuous nine-year line over data that has holes in it.
 
-  const PAD = { top: 12, right: 16, bottom: 24, left: 48 };
+  // `top` is generous because the newest-value callout is drawn ABOVE the plot
+  // area rather than beside the last mark. Anchored to the mark it collided
+  // with the data on every bar chart — the last bucket is usually short (a
+  // partial month), so an end-anchored label ran left straight across the
+  // taller bars behind it.
+  const PAD = { top: 26, right: 16, bottom: 24, left: 52 };
 
   function niceTicks(min, max, count = 4) {
     if (!(max > min)) return [min];
@@ -325,12 +344,14 @@ export function register(host) {
     return out;
   }
 
-  function Chart({ points, bucket, meta, unit, palette, onPick, picked }) {
+  function Chart({ points, bucket, meta, unit, palette, onPick, picked, height: wantHeight }) {
     const [wrapRef, { width }] = useMeasure();
     const [hover, setHover] = useState(null);
     const svgRef = useRef(null);
 
-    const height = 240;
+    // Fills whatever the tab gives it (see ChartTab), clamped so it stays
+    // readable in a short window and doesn't become a strip in a tall one.
+    const height = Math.max(180, Math.min(wantHeight || 240, 520));
     const W = Math.max(width, 240);
     const innerW = W - PAD.left - PAD.right;
     const innerH = height - PAD.top - PAD.bottom;
@@ -380,7 +401,10 @@ export function register(host) {
     const x = (ts) => PAD.left + ((ts - t0) / (t1 - t0)) * innerW;
     const y = (v) => PAD.top + innerH - ((v - lo) / (hi - lo)) * innerH;
 
-    const yTicks = niceTicks(lo, hi, 4);
+    // 5, not 4: the "nice step" rounding turns a 45-unit range asked for in 4
+    // into a step of 20, which leaves a chart with two gridlines on it and no
+    // way to read a value off. Asking for 5 lands on 10 and gives four.
+    const yTicks = niceTicks(lo, hi, 5);
     // ~1 label per 90px, so the axis never collides with itself at any width.
     const xTickCount = Math.max(2, Math.min(6, Math.floor(innerW / 90)));
     const xTicks = Array.from({ length: xTickCount + 1 }, (_, i) => t0 + ((t1 - t0) * i) / xTickCount);
@@ -415,7 +439,8 @@ export function register(host) {
     return (
       <div ref={wrapRef} style={{ position: 'relative', width: '100%' }}>
         <svg
-          ref={svgRef} width="100%" height={height} viewBox={`0 0 ${W} ${height}`}
+          ref={svgRef} data-chart="series"
+          width="100%" height={height} viewBox={`0 0 ${W} ${height}`}
           style={{ display: 'block', overflow: 'visible' }}
           onMouseMove={(e) => setHover(nearest(e.clientX))}
           onMouseLeave={() => setHover(null)}
@@ -436,7 +461,7 @@ export function register(host) {
             <text key={`x${i}`} x={x(t)} y={height - 6}
                   textAnchor={i === 0 ? 'start' : i === xTicks.length - 1 ? 'end' : 'middle'}
                   fontSize={FS.label} fill="var(--color-text-muted)">
-              {fmtAxisDate(t, bucket)}
+              {fmtAxisDate(t, bucket, (t1 - t0) / DAY)}
             </text>
           ))}
 
@@ -462,13 +487,20 @@ export function register(host) {
                   strokeLinejoin="round" strokeLinecap="round" />
           )}
 
-          {/* Selective direct label: the newest value only. A number on every
-              point is noise, and this is the one the eye goes to first. */}
-          <text x={Math.min(x(last.bucket_ts + span / 2) + 6, W - PAD.right)}
-                y={Math.max(y(last.v) - 7, PAD.top + 8)}
-                textAnchor="end" fontSize={FS.mono} fontWeight="600"
-                fill="var(--color-text-primary)">
+          {/* Selective direct label: the newest bucket only. A number on every
+              point is noise, and this is the one the eye goes to first. It
+              sits in the padding above the plot, never over the marks, with a
+              swatch tying it to the series — the text itself stays in the
+              text token, never the series colour. */}
+          <circle cx={W - PAD.right - 4} cy={11} r="4" fill={palette.s1} />
+          <text x={W - PAD.right - 13} y={15} textAnchor="end"
+                fontSize={FS.mono} fontWeight="600" fill="var(--color-text-primary)">
             {fmtNum(last.v, meta.decimals)}{unit ? ` ${unit}` : ''}
+          </text>
+          <text x={PAD.left} y={15} textAnchor="start"
+                fontSize={FS.label} fill="var(--color-text-muted)"
+                style={{ textTransform: 'uppercase', letterSpacing: '.06em' }}>
+            latest {bucket}
           </text>
 
           {hover && (
@@ -641,6 +673,7 @@ export function register(host) {
     const [loading, setLoading] = useState(false);
     const [picked, setPicked] = useState(null);
     const [asTable, setAsTable] = useState(false);
+    const [plotRef, plotSize] = useMeasure();
 
     const metric = metrics.find((m) => m.metric_type === selected);
     const meta = metric ? metaFor(metric) : null;
@@ -717,28 +750,39 @@ export function register(host) {
           {metric.units_vary && ' · mixed units'}
         </div>
 
-        <div className="flex-1 min-h-0 overflow-auto">
-          {error && (
-            <Empty>
-              Couldn’t load this metric — {error}
-            </Empty>
-          )}
-          {!error && loading && points === null && <Empty>Loading…</Empty>}
-          {!error && points && !asTable && (
-            <Chart points={points} bucket={bucket} meta={meta} unit={unit}
-                   palette={palette} onPick={setPicked} picked={picked} />
-          )}
-          {!error && points && asTable && <SeriesTable points={points} bucket={bucket} meta={meta} unit={unit} />}
-          {!error && points && points.length > 0 && !asTable && (
-            <div style={{ ...S.mono, color: 'var(--color-text-muted)', marginTop: 4 }}>
-              Click a {bucket} to see its individual readings.
+        {error && <Empty>Couldn’t load this metric — {error}</Empty>}
+        {!error && loading && points === null && <Empty>Loading…</Empty>}
+
+        {!error && points && asTable && (
+          <div className="flex-1 min-h-0 overflow-auto">
+            <SeriesTable points={points} bucket={bucket} meta={meta} unit={unit} />
+          </div>
+        )}
+
+        {!error && points && !asTable && (
+          // The plot takes whatever vertical space is left and reports it back
+          // to the chart, instead of the chart being a fixed 240px strip with
+          // half the window empty under it. `overflow: hidden` stops the
+          // measure→render→measure loop a scrolling parent would create.
+          <div className="flex flex-col flex-1 min-h-0">
+            <div ref={plotRef} className="flex-1 min-h-0" style={{ overflow: 'hidden' }}>
+              <Chart points={points} bucket={bucket} meta={meta} unit={unit}
+                     palette={palette} onPick={setPicked} picked={picked}
+                     height={plotSize.height} />
             </div>
-          )}
-          {picked && !asTable && (
-            <BucketDetail metricType={metric.metric_type} bucket={bucket} point={picked}
-                          meta={meta} onClose={() => setPicked(null)} />
-          )}
-        </div>
+            {points.length > 0 && (
+              <div className="shrink-0" style={{ ...S.mono, color: 'var(--color-text-muted)', marginTop: 4 }}>
+                Click a {bucket} to see its individual readings.
+              </div>
+            )}
+            {picked && (
+              <div className="shrink-0">
+                <BucketDetail metricType={metric.metric_type} bucket={bucket} point={picked}
+                              meta={meta} onClose={() => setPicked(null)} />
+              </div>
+            )}
+          </div>
+        )}
       </div>
     );
   }
