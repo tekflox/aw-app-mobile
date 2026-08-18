@@ -25,9 +25,12 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Body, FastAPI, HTTPException
+from fastapi.responses import JSONResponse, Response
 
+from . import mcp_config
 from .health_client import HealthBackendError, HealthClient, NotConfigured
+from .mcp import tools as mcp_tools
 
 log = logging.getLogger("aw_apps.mobile")
 
@@ -61,6 +64,8 @@ def build_routes(config: dict | None = None) -> FastAPI:
             "configured": client.configured,
             "backend_url": client.backend_url,
             "workspace": client.workspace,
+            "mcp_server": mcp_config.SERVER_NAME,
+            "tools": mcp_tools.TOOL_NAMES,
         }
 
     @app.get("/health/metrics")
@@ -132,5 +137,37 @@ def build_routes(config: dict | None = None) -> FastAPI:
             "category": category,
             "limit": limit,
         })
+
+    # ------------------------------------------------------------------
+    # MCP — Streamable HTTP, auto-discovered by aw-mcp-gateway's app-scan.
+    #
+    # Mounted here rather than anywhere under /api/apps/mobile/ui/, which core
+    # reserves for app ESM bundles and would shadow.
+    # ------------------------------------------------------------------
+
+    @app.get("/mcp.json")
+    async def mcp_json() -> dict:
+        """What this app registers with the gateway. Purely diagnostic — the
+        gateway reads the file on disk, not this route — but it answers "is the
+        entry the one I think it is" without a shell in the container."""
+        return {"mcpServers": mcp_config.build_mcp_servers()}
+
+    @app.post("/mcp")
+    async def mcp_post(data: dict | list = Body(...)):
+        from .mcp.http_handler import handle_request
+
+        messages = data if isinstance(data, list) else [data]
+        responses = []
+        for m in messages:
+            r = await handle_request(m, client)
+            if r is not None:
+                responses.append(r)
+        if not responses:
+            return Response(status_code=202)
+        return JSONResponse(responses if isinstance(data, list) else responses[0])
+
+    @app.get("/mcp")
+    async def mcp_get():
+        return Response(status_code=405)
 
     return app

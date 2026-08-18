@@ -246,11 +246,49 @@ def test_unreachable_backend_becomes_a_502(make_client):
 
 
 def test_every_health_route_is_a_read(make_client):
+    """The /health/* proxy stays read-only.
+
+    Narrowed from "every route on this app is a read" once the MCP endpoint
+    arrived: JSON-RPC is POST by protocol, and some of the tools behind it
+    legitimately write (log an event, save a place). What must not drift is
+    this surface — the window reads, and a chart endpoint that grew a mutation
+    would be a surprise. The MCP POST is asserted separately below.
+    """
     fake, client = make_client()
     app = routes_mod.build_routes()
     for route in app.routes:
+        path = getattr(route, "path", "")
+        if not path.startswith("/health/"):
+            continue
         methods = getattr(route, "methods", set()) or set()
-        assert methods <= {"GET", "HEAD"}, f"{route.path} exposes {methods}"
+        assert methods <= {"GET", "HEAD"}, f"{path} exposes {methods}"
+
+
+def test_the_mcp_endpoint_is_the_only_post(make_client):
+    fake, client = make_client()
+    app = routes_mod.build_routes()
+    posts = {
+        getattr(r, "path", "")
+        for r in app.routes
+        if "POST" in (getattr(r, "methods", set()) or set())
+    }
+    assert posts == {"/mcp"}
+
+
+def test_mcp_json_route_describes_the_registered_upstream(make_client):
+    """Diagnostic only — the gateway reads the file on disk, not this route —
+    but it answers "is the entry the one I think it is" without a shell."""
+    fake, client = make_client()
+    body = client.get("/mcp.json").json()
+    assert "aw-mobile-app" in body["mcpServers"]
+    assert body["mcpServers"]["aw-mobile-app"]["url"].endswith("/api/apps/mobile/mcp")
+
+
+def test_status_advertises_the_tool_surface(make_client):
+    fake, client = make_client()
+    body = client.get("/health/status").json()
+    assert body["mcp_server"] == "aw-mobile-app"
+    assert len(body["tools"]) == 13
 
 
 def test_the_five_read_routes_are_all_mounted(make_client):

@@ -2,8 +2,8 @@
   "manifest_version": 1,
   "id": "mobile",
   "name": "AW Mobile",
-  "version": "0.6.0",
-  "description": "Your Apple Health history, in a window. Nine years of heart rate, sleep, steps, workouts and where you were \u2014 charted by day, week or month, with a drill-down to the individual readings. Also the workspace half of aw-mobile: installing it creates the agents the iPhone, Apple Watch and Meta glasses talk to, tuned to answer on a 40mm screen or read aloud.",
+  "version": "0.7.0",
+  "description": "Your Apple Health history and where you've been, in a window and in your agents' hands. Nine years of heart rate, sleep, steps and workouts charted by day, week or month with a drill-down to individual readings — plus 13 MCP tools so an agent can answer \"where was I on Tuesday?\" or \"how did I sleep?\", save a place by name, and log a meal or a symptom. Also the workspace half of aw-mobile: installing it creates the agents the iPhone, Apple Watch and Meta glasses talk to.",
   "tier": "inprocess",
   "requires_ui_refresh": true,
   "category": "Runnables",
@@ -35,6 +35,24 @@
         "prefix": "/api/apps/mobile"
       }
     ],
+    "mcp": {
+      "reload_on_save": true,
+      "provides": [
+        "get_location",
+        "get_location_history",
+        "get_location_stops",
+        "save_location_annotation",
+        "search_location_annotations",
+        "list_location_annotations",
+        "update_location_annotation",
+        "delete_location_annotation",
+        "log_health_event",
+        "list_health_log",
+        "get_health_samples",
+        "sync_health_now",
+        "get_devices"
+      ]
+    },
     "windows": [
       {
         "id": "mobile.health",
@@ -53,7 +71,7 @@
       {
         "id": "aw-agent-watch",
         "path": "skills/aw-agent-watch/SKILL.md",
-        "description": "Channel contract for an agent reached from the AW iOS app or Apple Watch \u2014 the reply lands on a 40mm screen or is spoken aloud, so it carries no markdown and is budgeted by source device."
+        "description": "Channel contract for an agent reached from the AW iOS app or Apple Watch — the reply lands on a 40mm screen or is spoken aloud, so it carries no markdown and is budgeted by source device."
       }
     ],
     "agents": {
@@ -68,7 +86,7 @@
           "skill_slugs": [
             "aw-agent-watch"
           ],
-          "capabilities": "Inbound-channel agent for aw-mobile (watch / iphone / meta glasses). Same workspace reach as the Telegram channel agents \u2014 full filesystem, gateway MCP, docker \u2014 but answers under a hard length budget and emits no markdown.",
+          "capabilities": "Inbound-channel agent for aw-mobile (watch / iphone / meta glasses). Same workspace reach as the Telegram channel agents — full filesystem, gateway MCP, docker — but answers under a hard length budget and emits no markdown.",
           "use_cases": [
             "ask the workspace something from the Apple Watch",
             "dictate a task while walking",
@@ -81,14 +99,14 @@
         {
           "slug": "watch-opus",
           "name": "Watch - Opus",
-          "description": "The Watch channel agent on Opus \u2014 for a question worth the extra latency and cost, dictated rather than typed.",
+          "description": "The Watch channel agent on Opus — for a question worth the extra latency and cost, dictated rather than typed.",
           "system_prompt_file": "prompts/watch-agent.md",
           "model_slug": "claude-runner-opus",
           "agent_config_slug": "agent-config-aw-full",
           "skill_slugs": [
             "aw-agent-watch"
           ],
-          "capabilities": "As watch-sonnet, on Opus. Same channel contract and the same hard length budget \u2014 a stronger model is not licence for a longer reply.",
+          "capabilities": "As watch-sonnet, on Opus. Same channel contract and the same hard length budget — a stronger model is not licence for a longer reply.",
           "use_cases": [
             "a harder question asked from the watch",
             "reason about something while away from the desk"
@@ -100,7 +118,7 @@
         {
           "slug": "watch-fable",
           "name": "Watch - Fable",
-          "description": "The Watch channel agent on Fable \u2014 the fast one, for the quick back-and-forth a wrist is actually good at.",
+          "description": "The Watch channel agent on Fable — the fast one, for the quick back-and-forth a wrist is actually good at.",
           "system_prompt_file": "prompts/watch-agent.md",
           "model_slug": "claude-runner-fable",
           "agent_config_slug": "agent-config-aw-full",
@@ -125,7 +143,13 @@
         "id": "agents-platform-runners",
         "version": ">=0.37.0",
         "required": false,
-        "reason": "Provides the contributes.agents surface \u2014 it holds the Agents Platform base URL and identity token, which core does not. Non-required on purpose: an agent declaration that arrives before the provider is HELD and replayed the moment one appears, so this app installs cleanly either way and the skill stays usable by hand in the meantime."
+        "reason": "Provides the contributes.agents surface — it holds the Agents Platform base URL and identity token, which core does not. Non-required on purpose: an agent declaration that arrives before the provider is HELD and replayed the moment one appears, so this app installs cleanly either way and the skill stays usable by hand in the meantime."
+      },
+      {
+        "id": "mcp-gateway",
+        "version": ">=0.1.0",
+        "required": false,
+        "reason": "Aggregates this app's in-process /mcp endpoint as aw__aw_mobile_app__* so agents can read location/health and save places. Non-required: the Health window and the REST surface work standalone; without the gateway the tools simply aren't offered to agents."
       }
     ]
   },

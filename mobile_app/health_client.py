@@ -118,21 +118,35 @@ class HealthClient:
                 "and this workspace has no credential to reach it."
             )
 
-    async def get(self, path: str, params: dict | None = None) -> dict:
-        """GET ``/api/workspaces/{slug}/health{path}`` with the host token.
+    async def request(
+        self,
+        method: str,
+        path: str,
+        params: dict | None = None,
+        json_body: dict | None = None,
+        namespace: str = "health",
+    ) -> dict:
+        """``<method> /api/workspaces/{slug}/{namespace}{path}`` with the host token.
 
-        ``params`` is filtered of ``None`` before sending so an omitted bound
-        stays omitted rather than becoming the literal string "None" in the
-        query — which aw-backend would reject as an unparseable float and the
-        window would report as a mysterious 422.
+        ``namespace`` picks which of aw-backend's two workspace-scoped
+        surfaces to hit: ``health`` (samples, series, log) or ``mobile``
+        (location, annotations, devices). Both sit behind the same
+        ``require_workspace_actor`` plus the same legacy-tenant gate, so the
+        credential and the failure modes are identical — only the prefix
+        differs.
+
+        ``params`` is filtered of ``None``/``""`` before sending so an omitted
+        bound stays omitted rather than becoming the literal string "None" in
+        the query — which aw-backend would reject as an unparseable float and
+        the caller would report as a mysterious 422.
         """
         self._require_configured()
-        url = f"{self.backend_url}/api/workspaces/{self.workspace}/health{path}"
+        url = f"{self.backend_url}/api/workspaces/{self.workspace}/{namespace}{path}"
         clean = {k: v for k, v in (params or {}).items() if v is not None and v != ""}
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                resp = await client.get(
-                    url, params=clean,
+                resp = await client.request(
+                    method, url, params=clean, json=json_body,
                     headers={"Authorization": f"Bearer {self.token}"},
                 )
         except httpx.HTTPError as e:
@@ -148,3 +162,20 @@ class HealthClient:
                 status_code=resp.status_code,
             )
         return data
+
+    async def get(self, path: str, params: dict | None = None,
+                  namespace: str = "health") -> dict:
+        return await self.request("GET", path, params=params, namespace=namespace)
+
+    async def post(self, path: str, json_body: dict | None = None,
+                   namespace: str = "health") -> dict:
+        return await self.request("POST", path, json_body=json_body or {},
+                                  namespace=namespace)
+
+    async def patch(self, path: str, json_body: dict | None = None,
+                    namespace: str = "health") -> dict:
+        return await self.request("PATCH", path, json_body=json_body or {},
+                                  namespace=namespace)
+
+    async def delete(self, path: str, namespace: str = "health") -> dict:
+        return await self.request("DELETE", path, namespace=namespace)

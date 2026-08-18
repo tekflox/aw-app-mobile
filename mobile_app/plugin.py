@@ -43,8 +43,10 @@ Shipping a corrected prompt means a new slug, or an edit in the UI.
 from __future__ import annotations
 
 import logging
+import os
 
-from . import routes as routes_mod
+from . import mcp_config, routes as routes_mod
+from .mcp import tools as mcp_tools
 
 log = logging.getLogger("aw_apps.mobile")
 
@@ -66,7 +68,21 @@ class MobileAppPlugin:
             self.ctx.routes.register(
                 routes_mod.build_routes(getattr(self.ctx, "config", {}) or {})
             )
-            log.info("aw-app-mobile: health routes mounted at /api/apps/mobile")
+            log.info("aw-app-mobile: routes mounted at /api/apps/mobile")
+
+        # THIS is what makes the tools exist. contributes.mcp in aw-app.json
+        # registers nothing — the gateway only ever finds an upstream by
+        # scanning for this file. Rebuilt every boot rather than persisted:
+        # the entry embeds this process's hostname and API key, both of which
+        # change when the workspace container is recreated.
+        package_dir = getattr(self.ctx, "package_dir", None) if self.ctx else None
+        if package_dir:
+            port = int(os.environ.get("AW_PORT") or 9030)
+            doc = mcp_config.write_mcp_json(package_dir, port)
+            log.info(
+                "aw-app-mobile: MCP server=%s, %d tools registered for the gateway scan",
+                sorted(doc["mcpServers"]), len(mcp_tools.TOOL_NAMES),
+            )
         log.info(
             "aw-app-mobile active — watch agents and the aw-agent-watch skill "
             "are seeded by the workspace from aw-app.json's contributes block"
