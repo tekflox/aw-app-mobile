@@ -33,7 +33,7 @@ from mobile_app.mcp import http_handler, self_register, tools
 
 APP_DIR = Path(__file__).resolve().parents[1]
 
-#: The 13, exactly as the monolith named them. Written out rather than derived
+#: The 32, exactly as the monolith named them. Written out rather than derived
 #: from the code so a rename has to be a deliberate edit here too.
 EXPECTED_TOOLS = [
     "get_location",
@@ -49,6 +49,25 @@ EXPECTED_TOOLS = [
     "get_health_samples",
     "sync_health_now",
     "get_devices",
+    "switch_session",
+    "pin_session",
+    "new_session",
+    "unpin_session",
+    "list_pins",
+    "list_devices",
+    "get_device_status",
+    "list_ws_connections",
+    "send_push_notification",
+    "send_open_url",
+    "send_navigate_to",
+    "wake_app",
+    "start_recording",
+    "request_watch_dump",
+    "reset_watch_db",
+    "list_watch_dumps",
+    "open_on_display",
+    "whats_on_display",
+    "list_display_apps",
 ]
 
 
@@ -207,7 +226,7 @@ async def test_initialized_notification_gets_no_response():
 async def test_unknown_tool_is_an_error_result_not_a_crash():
     r = await http_handler.handle_request(
         {"jsonrpc": "2.0", "id": 1, "method": "tools/call",
-         "params": {"name": "send_push_notification", "arguments": {}}}, _FakeClient())
+         "params": {"name": "totally_unregistered_tool", "arguments": {}}}, _FakeClient())
     assert r["result"]["isError"] is True
     assert "Unknown tool" in r["result"]["content"][0]["text"]
 
@@ -520,7 +539,6 @@ async def test_get_devices_renders_presence():
 @_async_test
 async def test_every_tool_is_callable_through_the_dispatch():
     """Nothing in the schema is a dead entry — each one runs and returns text."""
-    client = _FakeClient()
     minimal = {
         "save_location_annotation": {"annotation": "x"},
         "search_location_annotations": {"query": "x"},
@@ -528,14 +546,190 @@ async def test_every_tool_is_callable_through_the_dispatch():
         "delete_location_annotation": {"annotation_id": 1},
         "log_health_event": {"text": "x"},
         "get_health_samples": {"metric_type": "heart_rate"},
+        "switch_session": {"agent_session_id": "new"},
+        "unpin_session": {"pin_id": "p1"},
+        "send_push_notification": {"body": "hi"},
+        "send_open_url": {"url": "https://x", "label": "x"},
+        "send_navigate_to": {"lat": 1.0, "lon": 2.0, "address": "x"},
+        "open_on_display": {"type": "app", "target": "https://x"},
+    }
+    canned = {
+        "save_location_annotation": {"/annotations": {"ok": True, "id": 1}},
+        "switch_session": {"/switch_session": {"ok": True, "agent_session_id": "s1"}},
+        "unpin_session": {"/pinned/remove": {"ok": True}},
+        "send_push_notification": {"/push_alert": {"ok": True}},
+        "send_open_url": {"/push_alert": {"ok": True}},
+        "send_navigate_to": {"/push_alert": {"ok": True}},
+        "wake_app": {"/wake_app": {"ok": True}},
+        "start_recording": {"/start_recording": {"ok": True}},
+        "request_watch_dump": {"/request_dump": {"ok": True, "delivered": True}},
+        "reset_watch_db": {"/request_db_reset": {"ok": True, "delivered": True}},
+        "open_on_display": {"/display/open": {"ok": True, "delivered": True}},
+        "new_session": {
+            "/switch_session": {"ok": True, "agent_session_id": "s1"},
+            "/pinned/add": {"ok": True, "pin": {"id": "p1"}},
+        },
+        "pin_session": {"/pinned/add": {"ok": True, "pin": {"id": "p1"}}},
     }
     for name in EXPECTED_TOOLS:
         r = await http_handler.handle_request(
             {"jsonrpc": "2.0", "id": 1, "method": "tools/call",
              "params": {"name": name, "arguments": minimal.get(name, {})}},
-            _FakeClient({} if name not in ("save_location_annotation",)
-                        else {"/annotations": {"ok": True, "id": 1}}),
+            _FakeClient(canned.get(name, {})),
         )
         body = r["result"]["content"][0]["text"]
         assert isinstance(body, str) and body, name
         assert "Unknown tool" not in body, name
+
+
+# ---------------------------------------------------------------------------
+# The 19 ported 2026-08-23 — each hits the right door
+# ---------------------------------------------------------------------------
+
+
+@_async_test
+async def test_switch_session_reports_the_new_name_and_announce_state():
+    client = _FakeClient({"/switch_session": {
+        "ok": True, "session_id": "aw-meta-shared", "agent_session_id": "s2",
+        "session_name": "Refactor branch", "cli_type": "claude", "announced": True}})
+    text, is_error = await tools.switch_session(client, {"agent_session_id": "s2"})
+    assert is_error is False
+    assert client.calls[0]["namespace"] == "mobile" and client.calls[0]["path"] == "/switch_session"
+    assert "Refactor branch" in text and "spoke/showed" in text
+
+
+@_async_test
+async def test_switch_session_requires_a_target():
+    client = _FakeClient()
+    _, is_error = await tools.switch_session(client, {})
+    assert is_error is True
+    assert client.calls == []
+
+
+@_async_test
+async def test_pin_unpin_and_list_pins_round_trip():
+    add_client = _FakeClient({"/pinned/add": {
+        "ok": True, "pin": {"id": "p1", "session_name": "Roblox", "agent_session_id": "s1"}}})
+    text, is_error = await tools.pin_session(add_client, {"session_name": "Roblox"})
+    assert is_error is False and "Roblox" in text and "p1" in text
+    assert add_client.calls[0]["path"] == "/pinned/add"
+
+    list_client = _FakeClient({"/pinned": {"pinned": [
+        {"id": "p1", "session_name": "Roblox", "target_name": "claude"}]}})
+    text, _ = await tools.list_pins(list_client, {})
+    assert "Roblox" in text
+    assert list_client.calls[0]["params"]["session_id"] == "aw-meta-shared"
+
+    rm_client = _FakeClient({"/pinned/remove": {"ok": True}})
+    text, is_error = await tools.unpin_session(rm_client, {"pin_id": "p1"})
+    assert is_error is False and "p1" in text
+
+
+@_async_test
+async def test_new_session_chains_switch_then_pin():
+    client = _FakeClient({
+        "/switch_session": {"ok": True, "agent_session_id": "s9", "session_name": "New session"},
+        "/pinned/add": {"ok": True, "pin": {"id": "p9"}},
+    })
+    text, is_error = await tools.new_session(client, {})
+    assert is_error is False
+    assert client.calls[0]["path"] == "/switch_session"
+    assert client.calls[1]["path"] == "/pinned/add"
+    assert client.calls[1]["json"]["agent_session_id"] == "s9"
+    assert "p9" in text
+
+
+@_async_test
+async def test_list_devices_and_get_device_status_and_ws_connections():
+    d = _FakeClient({"/pinned/devices": {"devices": ["aw-meta-shared"]}})
+    text, _ = await tools.list_devices(d, {})
+    assert "aw-meta-shared" in text
+
+    s = _FakeClient({"/presence": {"iphone": True, "watch": False}})
+    text, _ = await tools.get_device_status(s, {})
+    assert "iphone" in text
+    assert s.calls[0]["params"]["session_id"] == "meta-default"
+
+    w = _FakeClient({"/ws_connections": {"connections": [
+        {"device": "watch", "session_id": "aw-meta-shared", "connected_seconds": 12.0}]}})
+    text, _ = await tools.list_ws_connections(w, {})
+    assert "watch on session aw-meta-shared" in text
+
+
+@_async_test
+async def test_push_notification_variants():
+    push = _FakeClient({"/push_alert": {"ok": True}})
+    text, is_error = await tools.send_push_notification(push, {"body": "hi", "lat": 1.0, "lon": 2.0})
+    assert is_error is False and "opens the location in Maps" in text
+    assert push.calls[0]["json"]["url"]
+
+    push2 = _FakeClient({"/push_alert": {"ok": True}})
+    text, _ = await tools.send_open_url(push2, {"url": "uber://x", "label": "Uber"})
+    assert "uber://x" in text
+
+    push3 = _FakeClient({"/push_alert": {"ok": True}})
+    text, _ = await tools.send_navigate_to(push3, {"lat": 1.0, "lon": 2.0, "address": "Rua X", "alias": "Casa"})
+    assert "Navigate to: Casa - Rua X" in text
+
+
+@_async_test
+async def test_send_push_notification_requires_body():
+    client = _FakeClient()
+    _, is_error = await tools.send_push_notification(client, {})
+    assert is_error is True
+    assert client.calls == []
+
+
+@_async_test
+async def test_wake_and_start_recording_report_failure_reasons():
+    client = _FakeClient({"/wake_app": {"ok": False, "error": "no token"}})
+    text, is_error = await tools.wake_app(client, {})
+    assert is_error is True and "no token" in text
+
+    client2 = _FakeClient({"/start_recording": {"ok": True, "status": "waking"}})
+    text, is_error = await tools.start_recording(client2, {})
+    assert is_error is False and "waking" in text.lower()
+
+
+@_async_test
+async def test_watch_diagnostics_report_delivery_as_a_boolean_not_a_count():
+    """aw-backend's request_dump/request_db_reset return `delivered` as a bool
+    (live-presence check), not the monolith's broadcast recipient count — the
+    tool text must not claim a count that was never returned."""
+    dump = _FakeClient({"/request_dump": {"ok": True, "delivered": False}})
+    text, is_error = await tools.request_watch_dump(dump, {})
+    assert is_error is False
+    assert "No device is currently connected" in text
+
+    reset = _FakeClient({"/request_db_reset": {"ok": True, "delivered": True}})
+    text, _ = await tools.reset_watch_db(reset, {})
+    assert "Asked the connected device(s)" in text
+
+    dumps = _FakeClient({"/dumps": {"dumps": [
+        {"device_uuid": "abc123", "ts": 1787059200.0, "path": "/x.json"}], "total": 1}})
+    text, _ = await tools.list_watch_dumps(dumps, {})
+    assert "1 dump(s) on file" in text and "abc123" in text
+
+
+@_async_test
+async def test_open_on_display_and_whats_on_display_and_list_display_apps():
+    open_client = _FakeClient({"/display/open": {"ok": True, "delivered": True}})
+    text, is_error = await tools.open_on_display(
+        open_client, {"type": "presentation", "target": "p1", "title": "Demo"})
+    assert is_error is False and "Demo" in text
+
+    state_client = _FakeClient({"/display/state": {"active": True, "title": "Demo", "type": "presentation", "target": "p1"}})
+    text, _ = await tools.whats_on_display(state_client, {})
+    assert "Demo" in text
+
+    text, is_error = await tools.list_display_apps(_FakeClient(), {})
+    assert is_error is False
+    assert "open_on_display" in text
+
+
+@_async_test
+async def test_open_on_display_requires_type_and_target():
+    client = _FakeClient()
+    _, is_error = await tools.open_on_display(client, {})
+    assert is_error is True
+    assert client.calls == []

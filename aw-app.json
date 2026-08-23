@@ -49,7 +49,26 @@
         "list_health_log",
         "get_health_samples",
         "sync_health_now",
-        "get_devices"
+        "get_devices",
+        "switch_session",
+        "pin_session",
+        "new_session",
+        "unpin_session",
+        "list_pins",
+        "list_devices",
+        "get_device_status",
+        "list_ws_connections",
+        "send_push_notification",
+        "send_open_url",
+        "send_navigate_to",
+        "wake_app",
+        "start_recording",
+        "request_watch_dump",
+        "reset_watch_db",
+        "list_watch_dumps",
+        "open_on_display",
+        "whats_on_display",
+        "list_display_apps"
       ]
     },
     "windows": [

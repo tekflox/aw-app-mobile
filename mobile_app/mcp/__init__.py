@@ -1,1 +1,1 @@
-"""The ``aw-mobile-app`` MCP server — 13 tools ported from the monolith."""
+"""The ``aw-mobile-app`` MCP server — 32 tools ported from the monolith."""

@@ -289,7 +289,7 @@ def test_status_advertises_the_tool_surface(make_client):
     fake, client = make_client()
     body = client.get("/health/status").json()
     assert body["mcp_server"] == "aw-mobile-app"
-    assert len(body["tools"]) == 13
+    assert len(body["tools"]) == 32
 
 
 def test_the_five_read_routes_are_all_mounted(make_client):
