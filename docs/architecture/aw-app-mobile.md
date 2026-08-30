@@ -3,7 +3,7 @@ repo: architecture
 path: docs/architecture/aw-app-mobile.md
 source: generated
 edited: false
-checksum: sha256:90e6db277675bbfc4749a572f5dca0217f292dd75183a88851cdb99b842c79c4
+checksum: sha256:a22ae2d2aa388d99e9b51f19851bcc6a0ef746aa48280cfc09d630c21194806e
 ---
 # AW Mobile
 
@@ -22,17 +22,36 @@ Your Apple Health history and where you've been, in a window and in your agents'
 ## MCP tools
 - `delete_location_annotation`
 - `get_devices`
+- `get_device_status`
 - `get_health_samples`
 - `get_location`
 - `get_location_history`
 - `get_location_stops`
+- `list_devices`
+- `list_display_apps`
 - `list_health_log`
 - `list_location_annotations`
+- `list_pins`
+- `list_watch_dumps`
+- `list_ws_connections`
 - `log_health_event`
+- `new_session`
+- `open_on_display`
+- `pin_session`
+- `request_watch_dump`
+- `reset_watch_db`
 - `save_location_annotation`
 - `search_location_annotations`
+- `send_navigate_to`
+- `send_open_url`
+- `send_push_notification`
+- `start_recording`
+- `switch_session`
 - `sync_health_now`
+- `unpin_session`
 - `update_location_annotation`
+- `wake_app`
+- `whats_on_display`
 
 ## Requirements
 ### O bundle de config é declarado por referência, e é isso que conserta o token sozinho
