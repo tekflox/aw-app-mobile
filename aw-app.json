@@ -2,7 +2,7 @@
   "manifest_version": 1,
   "id": "mobile",
   "name": "AW Mobile",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "description": "Your Apple Health history and where you've been, in a window and in your agents' hands. Nine years of heart rate, sleep, steps and workouts charted by day, week or month with a drill-down to individual readings \u2014 plus 13 MCP tools so an agent can answer \"where was I on Tuesday?\" or \"how did I sleep?\", save a place by name, and log a meal or a symptom. Also the workspace half of aw-mobile: installing it creates the agents the iPhone, Apple Watch and Meta glasses talk to.",
   "tier": "inprocess",
   "requires_ui_refresh": true,
