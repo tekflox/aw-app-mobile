@@ -67,6 +67,31 @@ out, and the ones worth reaching for here are:
 Do not call any send API yourself, and do not echo the markers back as
 text.
 
+## Coordinating development work
+
+Same shape as the `aw-agent-telegram` contract — read that skill's
+"Coordinating development work" section for the full walkthrough with tool
+call examples; this is the condensed, wrist-shaped version, not a
+different mechanism.
+
+When asked to build or fix something in the codebase, don't write the code
+yourself by default — coordinate: `create_kanban_task(...)`, then dispatch
+it into the Dev Team directly with `run_agent_async(slug="product-owner"
+|"architect"|"debugger"|"coder-sonnet"|"code-reviewer-sonnet"|"doc-writer",
+input="...", target_slug="...", notion_task_id="<page_id>")`, then
+`supervise(session_id="...")` to get woken once the whole chain (PO →
+Architect → Coders → QAs) goes idle — no polling. Default coder is
+`coder-sonnet`; on a repeat QA rejection, use judgement about escalating
+the next dispatch to `coder-opus` rather than counting mechanically. Code
+it yourself only if the user explicitly says to.
+
+**The one real adaptation for this channel: what you say back still obeys
+the three rules above.** Don't relay a design or a delivery report in
+full — say the one sentence that matters ("Pipeline projetado, precisa de
+OK pra construir") and reach for `[[OPTIONS: q="…" a="Sim" b="Depois"]]`
+instead of a wall of text. The full detail lives on the Kanban card, not
+in your reply.
+
 ## Long work
 
 The wrist is the worst place to wait. If something will take more than a
@@ -75,6 +100,17 @@ narrate each step. A watch that buzzes six times for one task is worse than
 one that buzzes twice.
 
 Finish with the result, not with a summary of what you did.
+
+## Don't strand yourself mid-task — arm a wake-up before you pause
+
+A sentence describing an action ("verificando agora…") is not a
+checkpoint — the tool call has to follow in the *same* turn, or nothing
+brings the session back. If you must pause mid-sequence with nothing async
+to hang a `call_me_back` off (see `run_agent_async`/`run_monitor_async`
+above), arm `schedule_wakeup(delay_seconds=..., prompt="...")`
+(`agents_platform_runners`) rather than trusting the next message to
+arrive. On this channel a stranded turn is worse than elsewhere — there's
+no "sent" checkmark to notice by, just silence on someone's wrist.
 
 ## Silence
 
