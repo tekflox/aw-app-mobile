@@ -2,7 +2,7 @@
   "manifest_version": 1,
   "id": "mobile",
   "name": "AW Mobile",
-  "version": "0.13.0",
+  "version": "0.14.0",
   "description": "Your Apple Health history and where you've been, in a window and in your agents' hands. Nine years of heart rate, sleep, steps and workouts charted by day, week or month with a drill-down to individual readings \u2014 plus 13 MCP tools so an agent can answer \"where was I on Tuesday?\" or \"how did I sleep?\", save a place by name, and log a meal or a symptom. Also the workspace half of aw-mobile: installing it creates the agents the iPhone, Apple Watch and Meta glasses talk to.",
   "tier": "inprocess",
   "requires_ui_refresh": true,
@@ -110,6 +110,7 @@
           "description": "Default agent for the AW Apple Watch / iPhone app. General-purpose, tuned for a reply that fits on a wrist or is read aloud.",
           "system_prompt_file": "prompts/watch-agent.md",
           "model_slug": "claude-runner-sonnet",
+          "disable_harness_tools": true,
           "agent_config_slug": "agent-config-aw-full",
           "skill_slugs": [
             "aw-agent-watch"
@@ -130,6 +131,7 @@
           "description": "The Watch channel agent on Opus \u2014 for a question worth the extra latency and cost, dictated rather than typed.",
           "system_prompt_file": "prompts/watch-agent.md",
           "model_slug": "claude-runner-opus",
+          "disable_harness_tools": true,
           "agent_config_slug": "agent-config-aw-full",
           "skill_slugs": [
             "aw-agent-watch"
@@ -149,6 +151,7 @@
           "description": "The Watch channel agent on Fable \u2014 the fast one, for the quick back-and-forth a wrist is actually good at.",
           "system_prompt_file": "prompts/watch-agent.md",
           "model_slug": "claude-runner-fable",
+          "disable_harness_tools": true,
           "agent_config_slug": "agent-config-aw-full",
           "skill_slugs": [
             "aw-agent-watch"
