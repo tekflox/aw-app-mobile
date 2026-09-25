@@ -47,7 +47,10 @@ from __future__ import annotations
 import datetime as _dt
 import json
 import logging
+import os
 import urllib.parse
+
+import httpx
 
 from ..health_client import HealthBackendError, NotConfigured
 
@@ -691,6 +694,54 @@ async def list_watch_dumps(client, args: dict) -> tuple[str, bool]:
 # Glasses display
 # ---------------------------------------------------------------------------
 
+#: 24h: long enough that a share link minted for a display session survives a
+#: glasses webapp reconnect/refresh without going stale mid-session, short
+#: enough that a link nobody revoked does not stay fetchable indefinitely.
+_PRESENTATION_SHARE_TTL_S = 24 * 3600
+
+
+async def _resolve_workspace_presentation_url(target: str) -> str | None:
+    """If TARGET is a presentation id in THIS workspace's own presentations
+    app, mint a share link for it and return its absolute URL. Returns None
+    for anything short of a confirmed hit — not found there, the app
+    unreachable, no published external URL to build a fetchable link from —
+    so the caller can fall back to forwarding TARGET unchanged, which is how
+    an id that only lives in aw-backend's own store keeps working.
+
+    Two Tier-1 apps in the same workspace process still cross the app
+    boundary over loopback HTTP, never a direct import — see
+    aw-app-devctl's precedent. Do NOT import aw-app-presentations'
+    PresentationStore directly; that couples two independently-installable
+    apps.
+    """
+    port = int(os.environ.get("AW_PORT") or 9030)
+    base = f"http://127.0.0.1:{port}/api/apps/presentations"
+    headers = {}
+    api_key = os.environ.get("AW_WORKSPACE_API_KEY")
+    if api_key:
+        headers["X-Api-Key"] = api_key
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as http:
+            get_resp = await http.get(f"{base}/presentations/{target}", headers=headers)
+            if get_resp.status_code != 200 or "id" not in (get_resp.json() or {}):
+                return None
+            share_resp = await http.post(
+                f"{base}/presentations/{target}/share",
+                json={"expires_in": _PRESENTATION_SHARE_TTL_S},
+                headers=headers,
+            )
+            if share_resp.status_code != 200:
+                return None
+            share = share_resp.json()
+    except (httpx.HTTPError, ValueError):
+        return None
+
+    token = share.get("token")
+    external_base = os.environ.get("AW_WORKSPACE_API_URL", "").rstrip("/")
+    if not token or not external_base:
+        return None
+    return f"{external_base}/api/apps/presentations/presentations/{target}/html?token={token}"
+
 
 async def open_on_display(client, args: dict) -> tuple[str, bool]:
     kind = (args.get("type") or "").strip().lower()
@@ -704,13 +755,29 @@ async def open_on_display(client, args: dict) -> tuple[str, bool]:
     title = (args.get("title") or "").strip()
     session_id = (args.get("session_id") or "").strip() or None
 
-    payload = {"type": kind, "target": target, "title": title, "show_logs": show_logs}
+    # aw-backend's /display/open resolves a "presentation" id against its OWN
+    # store, which agent-created presentations never land in (they're written
+    # to this workspace's presentations app instead) — so resolve locally
+    # first and forward a share link as type="app" when it's found here.
+    # Anything not found in THIS workspace's app is forwarded unchanged: it
+    # may still be a live id in aw-backend's own store.
+    forward_kind, forward_target = kind, target
+    resolved_locally = False
+    if kind == "presentation":
+        share_url = await _resolve_workspace_presentation_url(target)
+        if share_url:
+            forward_kind, forward_target = "app", share_url
+            resolved_locally = True
+
+    payload = {"type": forward_kind, "target": forward_target, "title": title, "show_logs": show_logs}
     if session_id:
         payload["session_id"] = session_id
     resp = await client.post("/display/open", payload, namespace="mobile")
     if not resp.get("ok"):
         return f"Failed to open on display: {resp.get('error') or resp}", True
     shown = f"logs for \"{target}\"" if show_logs else f"\"{title or target}\" ({kind})"
+    if resolved_locally:
+        shown += " (resolved via a share link from this workspace's presentations app)"
     if not resp.get("delivered"):
         return (f"Display state updated (showing {shown}), but no glasses webapp "
                 "tab is currently connected to receive it live — it'll show once one connects."), False

@@ -733,3 +733,142 @@ async def test_open_on_display_requires_type_and_target():
     _, is_error = await tools.open_on_display(client, {})
     assert is_error is True
     assert client.calls == []
+
+
+# ---------------------------------------------------------------------------
+# Card 3e65bf3b-9510-81f8: open_on_display(type="presentation") must resolve
+# against THIS workspace's presentations app, not just forward to aw-backend's
+# own (separate) store.
+# ---------------------------------------------------------------------------
+
+
+class _FakeHttpxResponse:
+    def __init__(self, status_code, json_body):
+        self.status_code = status_code
+        self._json_body = json_body
+
+    def json(self):
+        return self._json_body
+
+
+class _FakeHttpxClient:
+    """Stand-in for httpx.AsyncClient — replays canned responses by
+    (method, url), records every call it received."""
+
+    def __init__(self, responses):
+        self._responses = responses
+        self.calls = []
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc_info):
+        return False
+
+    async def get(self, url, headers=None):
+        self.calls.append(("GET", url, headers))
+        return self._responses.get(("GET", url), _FakeHttpxResponse(404, {}))
+
+    async def post(self, url, json=None, headers=None):
+        self.calls.append(("POST", url, json, headers))
+        return self._responses.get(("POST", url), _FakeHttpxResponse(404, {}))
+
+
+def _patch_presentations_transport(monkeypatch, responses):
+    monkeypatch.setenv("AW_PORT", "9030")
+    monkeypatch.setenv("AW_WORKSPACE_API_URL", "https://ws.example")
+    fake = _FakeHttpxClient(responses)
+    monkeypatch.setattr(tools.httpx, "AsyncClient", lambda *a, **k: fake)
+    return fake
+
+
+@_async_test
+async def test_resolve_workspace_presentation_url_mints_a_share_link_for_a_known_id(monkeypatch):
+    base = "http://127.0.0.1:9030/api/apps/presentations/presentations/demo-id"
+    fake = _patch_presentations_transport(monkeypatch, {
+        ("GET", base): _FakeHttpxResponse(200, {"id": "demo-id", "title": "Demo"}),
+        ("POST", f"{base}/share"): _FakeHttpxResponse(200, {"success": True, "token": "tok123"}),
+    })
+
+    url = await tools._resolve_workspace_presentation_url("demo-id")
+
+    assert url == "https://ws.example/api/apps/presentations/presentations/demo-id/html?token=tok123"
+    # the share TTL is sent explicitly, not left to the callee's default
+    assert fake.calls[1][2]["expires_in"] == tools._PRESENTATION_SHARE_TTL_S
+
+
+@_async_test
+async def test_resolve_workspace_presentation_url_returns_none_when_not_found(monkeypatch):
+    """Card risk #2: aw-backend's own store is still a valid source for a
+    presentation id (e.g. a Kanban card attachment) — a miss here must not
+    be mistaken for an error, and must not mint a share token for nothing."""
+    base = "http://127.0.0.1:9030/api/apps/presentations/presentations/not-in-this-workspace"
+    fake = _patch_presentations_transport(monkeypatch, {
+        ("GET", base): _FakeHttpxResponse(200, {"error": "Presentation not found", "success": False}),
+    })
+
+    url = await tools._resolve_workspace_presentation_url("not-in-this-workspace")
+
+    assert url is None
+    assert len(fake.calls) == 1  # no share token minted for a miss
+
+
+@_async_test
+async def test_resolve_workspace_presentation_url_returns_none_when_app_unreachable(monkeypatch):
+    """The presentations app being absent/down must fail open to the old
+    forward-unchanged behavior, not raise and break open_on_display."""
+    import httpx as _httpx
+
+    class _ExplodingClient:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *exc_info):
+            return False
+
+        async def get(self, url, headers=None):
+            raise _httpx.ConnectError("connection refused")
+
+    monkeypatch.setenv("AW_WORKSPACE_API_URL", "https://ws.example")
+    monkeypatch.setattr(tools.httpx, "AsyncClient", lambda *a, **k: _ExplodingClient())
+
+    url = await tools._resolve_workspace_presentation_url("demo-id")
+    assert url is None
+
+
+@_async_test
+async def test_open_on_display_rewrites_a_workspace_presentation_to_a_share_link(monkeypatch):
+    async def fake_resolve(target):
+        assert target == "demo-id"
+        return "https://ws.example/api/apps/presentations/presentations/demo-id/html?token=tok123"
+    monkeypatch.setattr(tools, "_resolve_workspace_presentation_url", fake_resolve)
+
+    client = _FakeClient({"/display/open": {"ok": True, "delivered": True}})
+    text, is_error = await tools.open_on_display(
+        client, {"type": "presentation", "target": "demo-id", "title": "Demo"})
+
+    assert is_error is False
+    assert "resolved via a share link" in text
+    sent = client.calls[0]["json"]
+    assert sent["type"] == "app"
+    assert sent["target"] == "https://ws.example/api/apps/presentations/presentations/demo-id/html?token=tok123"
+
+
+@_async_test
+async def test_open_on_display_forwards_unchanged_when_not_in_the_workspace_app(monkeypatch):
+    """The fallback branch is load-bearing, not politeness — an id that only
+    exists in aw-backend's own store must keep working exactly as before."""
+    async def fake_resolve(target):
+        return None
+    monkeypatch.setattr(tools, "_resolve_workspace_presentation_url", fake_resolve)
+
+    client = _FakeClient({"/display/open": {"ok": True, "delivered": True}})
+    text, is_error = await tools.open_on_display(
+        client, {"type": "presentation", "target": "aw-backend-only-id", "title": "Legacy"})
+
+    assert is_error is False
+    assert "resolved via a share link" not in text
+    assert client.calls[0]["json"] == {
+        "type": "presentation", "target": "aw-backend-only-id",
+        "title": "Legacy", "show_logs": False,
+    }
