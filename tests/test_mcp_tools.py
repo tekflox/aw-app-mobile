@@ -23,6 +23,7 @@ from __future__ import annotations
 import asyncio
 import functools
 import json
+import logging
 from pathlib import Path
 
 import pytest
@@ -798,7 +799,7 @@ async def test_resolve_workspace_presentation_url_mints_a_share_link_for_a_known
 
 
 @_async_test
-async def test_resolve_workspace_presentation_url_returns_none_when_not_found(monkeypatch):
+async def test_resolve_workspace_presentation_url_returns_none_when_not_found(monkeypatch, caplog):
     """Card risk #2: aw-backend's own store is still a valid source for a
     presentation id (e.g. a Kanban card attachment) — a miss here must not
     be mistaken for an error, and must not mint a share token for nothing."""
@@ -807,16 +808,22 @@ async def test_resolve_workspace_presentation_url_returns_none_when_not_found(mo
         ("GET", base): _FakeHttpxResponse(200, {"error": "Presentation not found", "success": False}),
     })
 
-    url = await tools._resolve_workspace_presentation_url("not-in-this-workspace")
+    with caplog.at_level(logging.WARNING):
+        url = await tools._resolve_workspace_presentation_url("not-in-this-workspace")
 
     assert url is None
     assert len(fake.calls) == 1  # no share token minted for a miss
+    # a plain miss is normal (the id may still live in aw-backend's own
+    # store) and must not be logged as if something were wrong
+    assert caplog.records == []
 
 
 @_async_test
-async def test_resolve_workspace_presentation_url_returns_none_when_app_unreachable(monkeypatch):
+async def test_resolve_workspace_presentation_url_returns_none_when_app_unreachable(monkeypatch, caplog):
     """The presentations app being absent/down must fail open to the old
-    forward-unchanged behavior, not raise and break open_on_display."""
+    forward-unchanged behavior, not raise and break open_on_display — but
+    unlike a plain miss, this is an operational problem and must leave a
+    trace in the logs (the defect QA/PO flagged on this card)."""
     import httpx as _httpx
 
     class _ExplodingClient:
@@ -832,8 +839,54 @@ async def test_resolve_workspace_presentation_url_returns_none_when_app_unreacha
     monkeypatch.setenv("AW_WORKSPACE_API_URL", "https://ws.example")
     monkeypatch.setattr(tools.httpx, "AsyncClient", lambda *a, **k: _ExplodingClient())
 
-    url = await tools._resolve_workspace_presentation_url("demo-id")
+    with caplog.at_level(logging.WARNING):
+        url = await tools._resolve_workspace_presentation_url("demo-id")
+
     assert url is None
+    assert len(caplog.records) == 1
+    record = caplog.records[0]
+    assert record.levelname == "WARNING"
+    assert "demo-id" in record.getMessage()
+    assert "ConnectError" in record.getMessage()
+
+
+@_async_test
+async def test_resolve_workspace_presentation_url_warns_when_share_mint_fails(monkeypatch, caplog):
+    """Found the presentation but couldn't mint a share link for it — an
+    operational problem, not a normal miss, so it must be logged too."""
+    base = "http://127.0.0.1:9030/api/apps/presentations/presentations/demo-id"
+    _patch_presentations_transport(monkeypatch, {
+        ("GET", base): _FakeHttpxResponse(200, {"id": "demo-id", "title": "Demo"}),
+        ("POST", f"{base}/share"): _FakeHttpxResponse(500, {"error": "boom"}),
+    })
+
+    with caplog.at_level(logging.WARNING):
+        url = await tools._resolve_workspace_presentation_url("demo-id")
+
+    assert url is None
+    assert len(caplog.records) == 1
+    assert "demo-id" in caplog.records[0].getMessage()
+
+
+@_async_test
+async def test_resolve_workspace_presentation_url_warns_when_url_not_configured(monkeypatch, caplog):
+    """Share minted fine, but AW_WORKSPACE_API_URL is missing — a
+    misconfiguration, not a normal miss, so it must be logged too."""
+    base = "http://127.0.0.1:9030/api/apps/presentations/presentations/demo-id"
+    monkeypatch.delenv("AW_WORKSPACE_API_URL", raising=False)
+    fake = _FakeHttpxClient({
+        ("GET", base): _FakeHttpxResponse(200, {"id": "demo-id", "title": "Demo"}),
+        ("POST", f"{base}/share"): _FakeHttpxResponse(200, {"success": True, "token": "tok123"}),
+    })
+    monkeypatch.setenv("AW_PORT", "9030")
+    monkeypatch.setattr(tools.httpx, "AsyncClient", lambda *a, **k: fake)
+
+    with caplog.at_level(logging.WARNING):
+        url = await tools._resolve_workspace_presentation_url("demo-id")
+
+    assert url is None
+    assert len(caplog.records) == 1
+    assert "demo-id" in caplog.records[0].getMessage()
 
 
 @_async_test

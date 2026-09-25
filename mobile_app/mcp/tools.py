@@ -731,14 +731,29 @@ async def _resolve_workspace_presentation_url(target: str) -> str | None:
                 headers=headers,
             )
             if share_resp.status_code != 200:
+                log.warning(
+                    "presentation %r found in workspace presentations app but share mint failed "
+                    "(status=%s) — falling back to forwarding the id unchanged",
+                    target, share_resp.status_code,
+                )
                 return None
             share = share_resp.json()
-    except (httpx.HTTPError, ValueError):
+    except (httpx.HTTPError, ValueError) as exc:
+        log.warning(
+            "presentation %r: workspace presentations app unreachable or returned an "
+            "unparseable response (%s: %s) — falling back to forwarding the id unchanged",
+            target, type(exc).__name__, exc,
+        )
         return None
 
     token = share.get("token")
     external_base = os.environ.get("AW_WORKSPACE_API_URL", "").rstrip("/")
     if not token or not external_base:
+        log.warning(
+            "presentation %r: share mint for workspace presentations app returned no token "
+            "or AW_WORKSPACE_API_URL is not configured — falling back to forwarding the id unchanged",
+            target,
+        )
         return None
     return f"{external_base}/api/apps/presentations/presentations/{target}/html?token={token}"
 
