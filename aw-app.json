@@ -2,7 +2,7 @@
   "manifest_version": 1,
   "id": "mobile",
   "name": "AW Mobile",
-  "version": "0.19.0",
+  "version": "0.20.0",
   "description": "Your Apple Health history and where you've been, in a window and in your agents' hands. Nine years of heart rate, sleep, steps and workouts charted by day, week or month with a drill-down to individual readings \u2014 plus 13 MCP tools so an agent can answer \"where was I on Tuesday?\" or \"how did I sleep?\", save a place by name, and log a meal or a symptom. Also the workspace half of aw-mobile: installing it creates the agents the iPhone, Apple Watch and Meta glasses talk to.",
   "tier": "inprocess",
   "requires_ui_refresh": true,
@@ -168,7 +168,7 @@
         {
           "slug": "watch-sol",
           "name": "Watch - Sol",
-          "description": "The Watch channel agent on Codex GPT-5.6 Sol — an OpenAI-backed alternative to the Claude variants, same hard length budget.",
+          "description": "The Watch channel agent on Codex GPT-5.6 Sol \u2014 an OpenAI-backed alternative to the Claude variants, same hard length budget.",
           "system_prompt_file": "prompts/watch-agent.md",
           "model_slug": "codex-runner-gpt-5-6-sol",
           "disable_harness_tools": true,
@@ -176,7 +176,7 @@
           "skill_slugs": [
             "aw-agent-watch"
           ],
-          "capabilities": "As watch-sonnet, on Codex GPT-5.6 Sol. Same channel contract and the same hard length budget — a different vendor is not licence for a longer reply.",
+          "capabilities": "As watch-sonnet, on Codex GPT-5.6 Sol. Same channel contract and the same hard length budget \u2014 a different vendor is not licence for a longer reply.",
           "use_cases": [
             "ask the workspace something from the Apple Watch, OpenAI-backed",
             "an independent model opinion dictated from the wrist"
