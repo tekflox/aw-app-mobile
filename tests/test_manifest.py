@@ -29,6 +29,7 @@ KNOWN_RUNNER_MODELS = {
     "claude-runner-haiku",
     "claude-runner-readonly",
     "codex-runner-gpt-5",
+    "codex-runner-gpt-5-6-sol",
 }
 
 #: Config bundle the Watch agents run under. Owned by the platform, NOT
@@ -58,9 +59,9 @@ def test_declares_the_capability_its_contribution_needs(manifest):
     assert "agents:contribute" in manifest["permissions"]
 
 
-def test_ships_the_three_variants(agents):
+def test_ships_the_four_variants(agents):
     assert {a["slug"] for a in agents} == {
-        "watch-sonnet", "watch-opus", "watch-fable"
+        "watch-sonnet", "watch-opus", "watch-fable", "watch-sol"
     }
 
 
@@ -73,10 +74,10 @@ def test_every_agent_names_a_real_runner_model(agents):
         )
 
 
-def test_the_three_variants_use_three_different_models(agents):
+def test_the_variants_use_different_models(agents):
     models = [a["model_slug"] for a in agents]
     assert len(set(models)) == len(models), (
-        "shipping three agents on the same model gives the user a choice that "
+        "shipping two agents on the same model gives the user a choice that "
         "isn't one"
     )
 

@@ -87,11 +87,11 @@ def test_httpx_is_declared_as_a_dependency(manifest):
 
 
 def test_agents_contribution_survived_the_window_addition(manifest):
-    """The window is additive — the three Watch agents are still why most of
+    """The window is additive — the Watch agents are still why most of
     this app exists."""
     assert "agents:contribute" in manifest["permissions"]
     slugs = {a["slug"] for a in manifest["contributes"]["agents"]["agents"]}
-    assert slugs == {"watch-sonnet", "watch-opus", "watch-fable"}
+    assert slugs == {"watch-sonnet", "watch-opus", "watch-fable", "watch-sol"}
 
 
 # ---------------------------------------------------------------------------
